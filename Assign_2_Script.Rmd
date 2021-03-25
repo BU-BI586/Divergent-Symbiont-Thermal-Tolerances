@@ -1,0 +1,675 @@
+---
+title: "Divergent *Symbiodiniaceae* Thermal Tolerances"
+author: "Alexa Huzar, Jacob Jaskiel, Yaoyuan Gan"
+date: "3/24/2021"
+output: html_document
+---
+
+# Introduction
+
+Different *Symbiodiniaceae* species and populations can convey differnet thermal tolerances to their coral host. However, the genes that control symbiont thermal tolerance are still unclear. The original data authors attempted to address this gap in knowledge by comparing two heterogenous populations of type C1 from the same coral species living in two distinct sites. The population from South Molle Island (SM) is considered thermally sensitive while the population from Magnetic Island (MI) is thermally tolerant allowing them to compare differentially expressed genes based on thermal tolerance level. We are now using their data but analyzing it through a different pathway to determine what genes are differentially expressed.
+
+**R version** 
+
+We used R version R-4.0.3 ADD in package versions before submitting
+
+# DESeq2 and GO enrichment pathways
+In order to understand the genes that are differentially expressed due to thermal tolerance, we used the Deseq2 and Go enrichment pathways. Deseq2 allows us to compare gene counts between treatment to determine what is differentially expressed. This data is then funneled into the Go enrichment pathway to determine the functions of the differentially expressed genes.
+
+# Deseq2 pipeline
+
+### Preparation Steps
+**We first loaded the appropriate libraries for all the analysis and graphs.**
+
+```{r, loadlib, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+library(DESeq2) 
+library(affycoretools)
+library(arrayQualityMetrics)
+library(genefilter)
+library(Biobase)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(pheatmap)
+library(vegan)
+library(ggrepel)
+```
+
+Set your working directory
+```{r}
+setwd("C:/Users/corey/Downloads/Bi586/Assign_2")
+```
+Now we read in our count data
+```{r} 
+countData <- read.table("LevinCounts.txt")
+head(countData)
+length(countData[,1])
+#### length = 31114
+```
+
+**Now we are changing the names of our columns to make it easier to read and understand. The first part of the name refers to the site the sample was from and the second part refers to the temperature the sample was taken at. All samples were taken after 13 days at their respective temperatures. 
+```{r}
+names(countData)=c( "MI_32a", "MI_32b", "MI_27a", "MI_27b", "SM_32a", "SM_32b", "SM_27a", "SM_27b")
+row.names(countData)=sub("", "isogroup", rownames(countData))
+head(countData)
+```
+
+
+###-------Not sure we need this step now. I think its just for the Go enrichment
+#Make sure you can succesfully read in the iso2gene tab separated file
+gg=read.table("Crep454_iso2gene.tab",sep="\t",quote="", row.names=1) 
+
+### Check for outliers
+
+First set the working directory and create a condtions table
+```{r}
+setwd("C:/Users/corey/Downloads/Bi586/Assign_2/outlier")
+v=setwd("C:/Users/corey/Downloads/Bi586/Assign_2/outlier")
+treat=c( "MI_32a", "MI_32b", "MI_27a", "MI_27b", "SM_32a", "SM_32b", "SM_27a", "SM_27b")
+g=data.frame(treat)
+g
+colData= g
+```
+
+```{r}
+countData <- round(countData, digits=0)
+```
+
+**DeSeq now creates our model for us based on how does gene expression vary by treatment**
+```{r}
+dds=DESeqDataSetFromMatrix(countData=countData,
+                           colData = g,
+                           design = ~treat)
+
+vsd.ge=assay(vst(dds))
+rl=vst(dds)
+e=ExpressionSet(assay(rl), AnnotatedDataFrame(as.data.frame(colData(rl))))
+arrayQualityMetrics(e,outdir=v,intgroup=c("treat"),force=T)
+```
+
+**No outliers found!!**
+
+###
+```{r}
+setwd("C:/Users/corey/Downloads/Bi586/Assign_2")
+```
+
+#read in counts Same stuff again after outliers
+```{r}
+countData <- read.table("LevinCounts.txt")
+head(countData)
+length(countData[,1])
+```
+#31114
+
+```{r}
+names(countData)=c( "MI_32a", "MI_32b", "MI_27a", "MI_27b", "SM_32a", "SM_32b", "SM_27a", "SM_27b")
+row.names(countData)=sub("", "isogroup", rownames(countData))
+head(countData)
+```
+
+##total number of raw counts. Useful to report
+```{r}
+totalCounts=colSums(countData)
+totalCounts
+barplot(totalCounts, col=c("coral", "coral", "coral", "red", "red", "red", "blue", "blue"), ylab="raw counts")
+```
+
+**MI_32a  MI_32b  MI_27a  MI_27b  SM_32a  SM_32b  SM_27a  SM_27b**
+**2968600 3160913 3025741 3014954 3840001 3629641 2930790 3279507**
+
+
+##creating call data again
+```{r}
+treat=c( "MI_32", "MI_32", "MI_27", "MI_27", "SM_32", "SM_32", "SM_27", "SM_27")
+g=data.frame(treat)
+g
+colData= g
+countData <- round(countData, digits=0)
+```
+
+###same deseq object as above
+```{r}
+dds=DESeqDataSetFromMatrix(countData=countData,
+                           colData = g,
+                           design = ~treat)
+```
+
+#one step DESeq. Can run ones that are way more complicated 
+```{r}
+dds<-DESeq(dds)
+```
+# estimating size factors
+# estimating dispersions
+# gene-wise dispersion estimates
+# mean-dispersion relationship
+# final dispersion estimates
+# fitting model and testing
+
+```{r}
+head(dds)
+res<- results(dds)
+```
+
+#Look at dispersions plot. Want it to look like a hockey stick
+###normalization method. SHows what DEseq2 is doing to your data
+```{r}
+plotDispEsts(dds, main="Dispersion plot Symbionts")
+```
+
+#####MI_27 vs MI_32 pairwise comparisons. Starting to look for DE genes
+#treatment first control second
+```{r}
+colData$MI32<-factor(colData$treat, levels=c("MI_32","MI_27")) 
+resMI32 <- results(dds, contrast=c("treat","MI_32","MI_27"))
+```
+#how many FDR < 10%?
+```{r}
+table(resMI32$padj<0.01)
+```
+# 0.1=4240
+# 0.05=3103
+# 0.01=1641
+
+###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
+
+##shows genes removed and totals up and downregulated relative to control
+```{r}
+summary(resMI32)
+```
+
+##another way to look at it 
+```{r}
+nrow(resMI32[resMI32$padj<0.01 & !is.na(resMI32$padj),]) 
+```
+# Num significantly differentially expressed genes excluding the no/low count genes   
+
+dev.off()
+### mean of normalized counts. far right is more highly expressed genes, 
+###more likely to find DE genes a=among those highly expressed. hard to find when low coverage
+```{r}
+plotMA(resMI32, main="MI_32 vs MI_27")
+```
+
+```{r}
+plotMA(resMI32, main="MI_32 vs MI_27", ylim=c(-20,20))
+```
+
+##put results in dataframe
+```{r}
+results <- as.data.frame(resMI32)
+head(results)
+```
+##another way to look at up and down regulated genes
+```{r}
+nrow(resMI32[resMI32$padj<0.1 & resMI32$log2FoldChange > 0 & !is.na(resMI32$padj),])
+nrow(resMI32[resMI32$padj<0.1 & resMI32$log2FoldChange < 0 & !is.na(resMI32$padj),])
+```
+**UP in MI32 2077**
+**DOWN in Mi32 2163**
+
+###write data in a table
+```{r}
+write.table(resMI32, file="MI_32.txt", quote=F, sep="\t")
+```
+###read the table back in
+```{r}
+cd <- read.table("MI_32.txt")
+head(cd)
+```
+
+
+###this is taking each isogroup and making ranked p value with directionality
+```{r}
+cd
+go_input_MI32 = cd %>%
+  tibble::rownames_to_column(var = "iso") %>%
+  mutate(mutated_p = -log(pvalue)) %>%
+  mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
+  na.omit() %>%
+  select(iso, mutated_p_updown)
+head(go_input_MI32)
+colnames(go_input_MI32) <- c("gene", "pval")
+head(go_input_MI32)
+write.csv(go_input_MI32, file="MI32_GO.csv", quote=F, row.names=FALSE)
+```
+
+### SM_32 versus SM_27
+
+```{r}
+colData$SM32<-factor(colData$treat, levels=c("SM_32","SM_27")) 
+resSM32 <- results(dds, contrast=c("treat","SM_32","SM_27"))
+```
+#how many FDR < 10%?
+```{r}
+table(resSM32$padj<0.1)
+```
+# 0.1=6695
+# 0.05=5258
+# 0.01=3336
+
+###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
+
+##shows genes removed and totals up and downregulated relative to control
+```{r}
+summary(resSM32)
+```
+
+##another way to look at it 
+```{r}
+nrow(resSM32[resSM32$padj<0.01 & !is.na(resSM32$padj),]) 
+```
+# Num significantly differentially expressed genes excluding the no/low count genes   
+
+dev.off()
+### mean of normalized counts. far right is more highly expressed genes, 
+###more likely to find DE genes a=among those highly expressed. hard to find when low coverage
+```{r}
+plotMA(resSM32, main="SM_32 vs SM_27")
+```
+
+```{r}
+plotMA(resSM32, main="SM_32 vs SM_27", ylim=c(-2,2))
+```
+##put results in dataframe
+```{r}
+results <- as.data.frame(resSM32)
+head(results)
+```
+##another way to look at up and down regulated genes
+```{r}
+nrow(resSM32[resMI32$padj<0.1 & resSM32$log2FoldChange > 0 & !is.na(resSM32$padj),])
+nrow(resSM32[resMI32$padj<0.1 & resSM32$log2FoldChange < 0 & !is.na(resSM32$padj),])
+```
+**UP in SM32 2516**
+**DOWN in SM32 1693**
+
+###write data in a table
+```{r}
+write.table(resSM32, file="SM_32.txt", quote=F, sep="\t")
+```
+###read the table back in
+```{r}
+cd <- read.table("SM_32.txt")
+head(cd)
+```
+
+
+###this is taking each isogroup and making ranked p value with directionality
+```{r}
+cd
+go_input_SM32 = cd %>%
+  tibble::rownames_to_column(var = "iso") %>%
+  mutate(mutated_p = -log(pvalue)) %>%
+  mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
+  na.omit() %>%
+  select(iso, mutated_p_updown)
+head(go_input_SM32)
+colnames(go_input_SM32) <- c("gene", "pval")
+head(go_input_SM32)
+write.csv(go_input_SM32, file="SM32_GO.csv", quote=F, row.names=FALSE)
+```
+
+### SM_32 versus MI_32
+
+```{r}
+colData$BOTH32<-factor(colData$treat, levels=c("MI_32","SM_32")) 
+resBOTH32 <- results(dds, contrast=c("treat","MI_32","SM_32"))
+```
+#how many FDR < 10%?
+```{r}
+table(resBOTH32$padj<0.05)
+```
+# 0.1=3695
+# 0.05=2808
+# 0.01=1731
+
+###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
+
+##shows genes removed and totals up and downregulated relative to control
+```{r}
+summary(resBOTH32)
+```
+
+##another way to look at it 
+```{r}
+nrow(resBOTH32[resBOTH32$padj<0.01 & !is.na(resBOTH32$padj),]) 
+```
+# Num significantly differentially expressed genes excluding the no/low count genes   
+
+dev.off()
+### mean of normalized counts. far right is more highly expressed genes, 
+###more likely to find DE genes a=among those highly expressed. hard to find when low coverage
+```{r}
+plotMA(resBOTH32, main="MI_32 vs SM_32")
+```
+
+```{r}
+plotMA(resBOTH32, main="MI_32 vs SM_32", ylim=c(-20,20))
+```
+##put results in dataframe
+```{r}
+results <- as.data.frame(resBOTH32)
+head(results)
+```
+##another way to look at up and down regulated genes
+```{r}
+nrow(resBOTH32[resBOTH32$padj<0.1 & resBOTH32$log2FoldChange > 0 & !is.na(resBOTH32$padj),])
+nrow(resBOTH32[resBOTH32$padj<0.1 & resBOTH32$log2FoldChange < 0 & !is.na(resBOTH32$padj),])
+```
+**UP in BOTH32 2677**
+**DOWN in BOTH32 1018**
+
+###write data in a table
+```{r}
+write.table(resBOTH32, file="BOTH_32.txt", quote=F, sep="\t")
+```
+###read the table back in
+```{r}
+cd <- read.table("BOTH_32.txt")
+head(cd)
+```
+
+
+###this is taking each isogroup and making ranked p value with directionality
+```{r}
+cd
+go_input_BOTH32 = cd %>%
+  tibble::rownames_to_column(var = "iso") %>%
+  mutate(mutated_p = -log(pvalue)) %>%
+  mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
+  na.omit() %>%
+  select(iso, mutated_p_updown)
+head(go_input_BOTH32)
+colnames(go_input_BOTH32) <- c("gene", "pval")
+head(go_input_BOTH32)
+write.csv(go_input_BOTH32, file="BOTH32_GO.csv", quote=F, row.names=FALSE)
+```
+
+### SM_27 versus MI_27
+
+```{r}
+colData$BOTH27<-factor(colData$treat, levels=c("MI_27","SM_27")) 
+resBOTH27 <- results(dds, contrast=c("treat","MI_27","SM_27"))
+```
+#how many FDR < 10%?
+```{r}
+table(resBOTH27$padj<0.01)
+```
+# 0.1=5158
+# 0.05=3946
+# 0.01=2286
+
+###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
+
+##shows genes removed and totals up and downregulated relative to control
+```{r}
+summary(resBOTH27)
+```
+
+##another way to look at it 
+```{r}
+nrow(resBOTH27[resBOTH27$padj<0.01 & !is.na(resBOTH27$padj),]) 
+```
+# Num significantly differentially expressed genes excluding the no/low count genes   
+
+dev.off()
+### mean of normalized counts. far right is more highly expressed genes, 
+###more likely to find DE genes a=among those highly expressed. hard to find when low coverage
+```{r}
+plotMA(resBOTH27, main="MI_27 vs SM_27")
+```
+
+```{r}
+plotMA(resBOTH32, main="MI_27 vs SM_27", ylim=c(-20,20))
+```
+##put results in dataframe
+```{r}
+results <- as.data.frame(resBOTH27)
+head(results)
+```
+##another way to look at up and down regulated genes
+```{r}
+nrow(resBOTH27[resBOTH27$padj<0.1 & resBOTH27$log2FoldChange > 0 & !is.na(resBOTH27$padj),])
+nrow(resBOTH27[resBOTH27$padj<0.1 & resBOTH27$log2FoldChange < 0 & !is.na(resBOTH27$padj),])
+```
+**UP in BOTH27 2763**
+**DOWN in BOTH27 2395**
+
+###write data in a table
+```{r}
+write.table(resBOTH27, file="BOTH_27.txt", quote=F, sep="\t")
+```
+###read the table back in
+```{r}
+cd <- read.table("BOTH_27.txt")
+head(cd)
+```
+
+
+###this is taking each isogroup and making ranked p value with directionality
+```{r}
+cd
+go_input_BOTH27 = cd %>%
+  tibble::rownames_to_column(var = "iso") %>%
+  mutate(mutated_p = -log(pvalue)) %>%
+  mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
+  na.omit() %>%
+  select(iso, mutated_p_updown)
+head(go_input_BOTH27)
+colnames(go_input_BOTH27) <- c("gene", "pval")
+head(go_input_BOTH27)
+write.csv(go_input_BOTH27, file="BOTH27_GO.csv", quote=F, row.names=FALSE)
+```
+
+
+### Binding two columns and pulling out pvalues. NA means p value is too high
+```{r}
+valMI32=cbind(resMI32$pvalue, resMI32$padj)
+head(valMI32)
+colnames(valMI32)=c("pval.MI32", "padj.MI32")
+length(valMI32[,1])
+table(complete.cases(valMI32))
+```
+```{r}
+valSM32=cbind(resSM32$pvalue, resSM32$padj)
+head(valSM32)
+colnames(valSM32)=c("pval.SM32", "padj.SM32")
+length(valSM32[,1])
+table(complete.cases(valSM32))
+```
+```{r}
+valBOTH32=cbind(resBOTH32$pvalue, resBOTH32$padj)
+head(valBOTH32)
+colnames(valBOTH32)=c("pval.BOTH32", "padj.BOTH32")
+length(valBOTH32[,1])
+table(complete.cases(valBOTH32))
+```
+```{r}
+valBOTH27=cbind(resBOTH27$pvalue, resBOTH27$padj)
+head(valBOTH27)
+colnames(valBOTH27)=c("pval.BOTH27", "padj.BOTH27")
+length(valBOTH27[,1])
+table(complete.cases(valBOTH27))
+```
+
+### Make rlogdata and pvals table
+**Normalization method, important for heatmap and PCA**
+```{r}
+rlog=rlogTransformation(dds, blind=TRUE) 
+rld=assay(rlog)
+head(rld)
+colnames(rld)=paste(colData$treat)
+head(rld)
+length(rld[,1])
+```
+
+#bind together pvalues and rlog data 
+**FALSE  TRUE**
+13208 17906 
+```{r}
+rldpvals=cbind(rld,valMI32, valSM32, valBOTH27, valBOTH32)
+head(rldpvals)
+dim(rldpvals)
+table(complete.cases(rldpvals))
+```
+```{r}
+write.csv(rldpvals, "Symbiont_RLDandPVALS.csv", quote=F)
+```
+
+```{r}
+colnames(rld)=paste(colData$treat)
+head(rld)
+```
+```{r}
+library(RColorBrewer)
+# Sample distance heatmap. Sample to sample. How similar are each sample
+sampleDists <- as.matrix(dist(t(rld)))
+library(gplots)
+heatmap.2(as.matrix(sampleDists), key=F, trace="none",
+          col=colorpanel(100, "black", "white"),
+          margin=c(10, 10), main="Sample Distance Matrix")
+```
+
+### VENN Diagram to include both up and down regulated genes in common for PC02
+# Standard way to show number of DEs. Making series of genes that are up and down in each by pulling on res function
+# making p adjusted cutoff.
+```{r}
+library(VennDiagram)
+
+MI32_up=row.names(resMI32[resMI32$padj<0.1 & !is.na(resMI32$padj) & resMI32$log2FoldChange>0,])
+length(MI32_up) #2077
+MI32_down=row.names(resMI32[resMI32$padj<0.1 & !is.na(resMI32$padj) & resMI32$log2FoldChange<0,])
+length(MI32_down) #2163
+SM32_up=row.names(resSM32[resSM32$padj<0.1 & !is.na(resSM32$padj) & resSM32$log2FoldChange>0,])
+length(SM32_up) #2611
+SM32_down=row.names(resSM32[resSM32$padj<0.1 & !is.na(resSM32$padj) & resSM32$log2FoldChange<0,])
+length(SM32_down) #4084
+
+BOTH32_up=row.names(resBOTH32[resMI32$padj<0.1 & !is.na(resBOTH32$padj) & resBOTH32$log2FoldChange>0,])
+length(BOTH32_up) #1833
+BOTH32_down=row.names(resBOTH32[resBOTH32$padj<0.1 & !is.na(resBOTH32$padj) & resBOTH32$log2FoldChange<0,])
+length(BOTH32_down) #1018
+BOTH27_up=row.names(resBOTH27[resBOTH27$padj<0.1 & !is.na(resBOTH27$padj) & resBOTH27$log2FoldChange>0,])
+length(BOTH27_up) #2763
+BOTH27_down=row.names(resBOTH27[resBOTH27$padj<0.1 & !is.na(resBOTH27$padj) & resBOTH27$log2FoldChange<0,])
+length(BOTH27_down) #2395
+```
+
+#overall number of genes with correct p value and no NA
+```{r}
+MI32=row.names(resMI32[resMI32$padj<0.1 & !is.na(resMI32$padj),])
+SM32=row.names(resSM32[resSM32$padj<0.1 & !is.na(resSM32$padj),])
+BOTH32=row.names(resBOTH32[resBOTH32$padj<0.1 & !is.na(resBOTH32$padj),])
+BOTH27=row.names(resSM32[resBOTH27$padj<0.1 & !is.na(resBOTH27$padj),])
+```
+
+#UP. Total number of up genes without repeated isogroups
+```{r}
+pdegs05_up=union(BOTH32_up, BOTH27_up)
+length(pdegs05_up)
+```
+
+**4459**
+
+```{r}
+pdegs05_up=union(MI32_up, SM32_up)
+length(pdegs05_up)
+```
+**4403**
+#DOWN. Total number of down genes without repeated isogroups
+```{r}
+pdegs05_down=union(BOTH32_down,BOTH27_down)
+length(pdegs05_down)
+```
+**3254**
+
+```{r}
+pdegs05_down=union(MI32_down,SM32_down)
+length(pdegs05_down)
+```
+**5954**
+
+#ALL
+```{r}
+pdegs05=union(MI32,SM32)
+length(pdegs05)
+```
+**9297**
+
+```{r}
+pdegs05=union(BOTH32,BOTH27)
+length(pdegs05)
+```
+**7705**
+
+###do UP, DOWN, ALL. Can change list to plot different things
+```{r}
+candidates=list("MI32"=MI32_up, "SM"=SM32_up)
+
+prettyvenn=venn.diagram(
+  x = candidates,
+  filename=NULL,
+  col = "transparent",
+  fill = c("coral2", "forestgreen"),
+  alpha = 0.5,
+  # label.col = c("darkred", "white", "darkgreen", "white", "white", "white", "blue4"),
+  cex = 2.5,
+  fontfamily = "sans",
+  fontface = "bold",
+  cat.default.pos = "text",
+  cat.col = c("darkred", "darkgreen"),
+  cat.cex = 2.5,
+  cat.fontfamily = "sans",
+  cat.dist = c(0.08, 0.08),
+  cat.pos = 1
+);
+grid.draw(prettyvenn)
+```
+
+```{r}
+candidates=list("MI32"=MI32_down, "SM"=SM32_down)
+
+prettyvenn=venn.diagram(
+  x = candidates,
+  filename=NULL,
+  col = "transparent",
+  fill = c("coral2", "forestgreen"),
+  alpha = 0.5,
+  # label.col = c("darkred", "white", "darkgreen", "white", "white", "white", "blue4"),
+  cex = 2.5,
+  fontfamily = "sans",
+  fontface = "bold",
+  cat.default.pos = "text",
+  cat.col = c("darkred", "darkgreen"),
+  cat.cex = 2.5,
+  cat.fontfamily = "sans",
+  cat.dist = c(0.08, 0.08),
+  cat.pos = 1
+);
+grid.draw(prettyvenn)
+```
+
+
+```{r}
+candidates=list("M"=MI32_up, "SM"=SM32_up)
+
+prettyvenn=venn.diagram(
+  x = candidates,
+  filename=NULL,
+  col = "transparent",
+  fill = c("coral2", "forestgreen"),
+  alpha = 0.5,
+  # label.col = c("darkred", "white", "darkgreen", "white", "white", "white", "blue4"),
+  cex = 2.5,
+  fontfamily = "sans",
+  fontface = "bold",
+  cat.default.pos = "text",
+  cat.col = c("darkred", "darkgreen"),
+  cat.cex = 2.5,
+  cat.fontfamily = "sans",
+  cat.dist = c(0.08, 0.08),
+  cat.pos = 1
+);
+grid.draw(prettyvenn)
+```
