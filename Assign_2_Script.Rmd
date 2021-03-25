@@ -7,7 +7,7 @@ output: html_document
 
 # Introduction
 
-Different *Symbiodiniaceae* species and populations can convey differnet thermal tolerances to their coral host. However, the genes that control symbiont thermal tolerance are still unclear. The original data authors attempted to address this gap in knowledge by comparing two heterogenous populations of type C1 from the same coral species living in two distinct sites. The population from South Molle Island (SM) is considered thermally sensitive while the population from Magnetic Island (MI) is thermally tolerant allowing them to compare differentially expressed genes based on thermal tolerance level. We are now using their data but analyzing it through a different pathway to determine what genes are differentially expressed.
+Different Symbiodiniaceae species and populations can convey different thermal tolerances to their coral host. However, the genes that control symbiont thermal tolerance are still unclear. Levin et al. (2016) attempted to address this gap in knowledge by comparing two heterogeneous populations of type C1 *Symbiodinium* from the same species of coral host (*Acropora tenuis*) living in two distinct sites on the Great Barrier Reef. The population from South Molle Island (SM) is considered thermally sensitive while the population from Magnetic Island (MI) is thermally tolerant allowing them to compare differentially expressed genes based on thermal tolerance level. We are now using their data but analyzing it through a different pathway to determine what genes are differentially expressed as a result of temperature stress.
 
 **R version** 
 
@@ -89,7 +89,7 @@ arrayQualityMetrics(e,outdir=v,intgroup=c("treat"),force=T)
 
 **No outliers found!!**
 
-###
+#Going back to main working directory
 ```{r}
 setwd("C:/Users/corey/Downloads/Bi586/Assign_2")
 ```
@@ -151,8 +151,8 @@ head(dds)
 res<- results(dds)
 ```
 
-#Look at dispersions plot. Want it to look like a hockey stick
-###normalization method. SHows what DEseq2 is doing to your data
+#Look at dispersions plot. We want it to look like a hockey stick
+###normalization method. Shows what DEseq2 is doing to your data
 ```{r}
 plotDispEsts(dds, main="Dispersion plot Symbionts")
 ```
