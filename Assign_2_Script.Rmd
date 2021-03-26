@@ -1,5 +1,5 @@
 ---
-title: "Divergent *Symbiodiniaceae* Thermal Tolerances"
+title: "Divergent Symbiodiniaceae Thermal Tolerances"
 author: "Alexa Huzar, Jacob Jaskiel, Yaoyuan Gan"
 date: "3/24/2021"
 output: html_document
@@ -119,7 +119,7 @@ barplot(totalCounts, col=c("coral", "coral", "coral", "red", "red", "red", "blue
 **2968600 3160913 3025741 3014954 3840001 3629641 2930790 3279507**
 
 
-##creating call data again
+creating call data again
 ```{r}
 treat=c( "MI_32", "MI_32", "MI_27", "MI_27", "SM_32", "SM_32", "SM_27", "SM_27")
 g=data.frame(treat)
@@ -147,6 +147,8 @@ dds<-DESeq(dds)
 # fitting model and testing
 
 ```{r}
+keep <- rowSums(counts(dds) >= 10) >= 3
+dds<-dds[keep,]
 head(dds)
 res<- results(dds)
 ```
@@ -167,9 +169,9 @@ resMI32 <- results(dds, contrast=c("treat","MI_32","MI_27"))
 ```{r}
 table(resMI32$padj<0.01)
 ```
-# 0.1=4240
-# 0.05=3103
-# 0.01=1641
+# 0.1=4248
+# 0.05=3133
+# 0.01=1646
 
 ###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
 
@@ -205,8 +207,8 @@ head(results)
 nrow(resMI32[resMI32$padj<0.1 & resMI32$log2FoldChange > 0 & !is.na(resMI32$padj),])
 nrow(resMI32[resMI32$padj<0.1 & resMI32$log2FoldChange < 0 & !is.na(resMI32$padj),])
 ```
-**UP in MI32 2077**
-**DOWN in Mi32 2163**
+**UP in MI32 2087**
+**DOWN in Mi32 2161**
 
 ###write data in a table
 ```{r}
@@ -242,11 +244,11 @@ resSM32 <- results(dds, contrast=c("treat","SM_32","SM_27"))
 ```
 #how many FDR < 10%?
 ```{r}
-table(resSM32$padj<0.1)
+table(resSM32$padj<0.01)
 ```
-# 0.1=6695
-# 0.05=5258
-# 0.01=3336
+# 0.1=6701
+# 0.05=5259
+# 0.01=3342
 
 ###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
 
@@ -281,8 +283,8 @@ head(results)
 nrow(resSM32[resMI32$padj<0.1 & resSM32$log2FoldChange > 0 & !is.na(resSM32$padj),])
 nrow(resSM32[resMI32$padj<0.1 & resSM32$log2FoldChange < 0 & !is.na(resSM32$padj),])
 ```
-**UP in SM32 2516**
-**DOWN in SM32 1693**
+**UP in SM32 2541**
+**DOWN in SM32 1706**
 
 ###write data in a table
 ```{r}
@@ -318,11 +320,11 @@ resBOTH32 <- results(dds, contrast=c("treat","MI_32","SM_32"))
 ```
 #how many FDR < 10%?
 ```{r}
-table(resBOTH32$padj<0.05)
+table(resBOTH32$padj<0.01)
 ```
-# 0.1=3695
-# 0.05=2808
-# 0.01=1731
+# 0.1=3704
+# 0.05=2814
+# 0.01=1738
 
 ###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
 
@@ -357,8 +359,8 @@ head(results)
 nrow(resBOTH32[resBOTH32$padj<0.1 & resBOTH32$log2FoldChange > 0 & !is.na(resBOTH32$padj),])
 nrow(resBOTH32[resBOTH32$padj<0.1 & resBOTH32$log2FoldChange < 0 & !is.na(resBOTH32$padj),])
 ```
-**UP in BOTH32 2677**
-**DOWN in BOTH32 1018**
+**UP in BOTH32 2682**
+**DOWN in BOTH32 1022**
 
 ###write data in a table
 ```{r}
@@ -396,9 +398,9 @@ resBOTH27 <- results(dds, contrast=c("treat","MI_27","SM_27"))
 ```{r}
 table(resBOTH27$padj<0.01)
 ```
-# 0.1=5158
-# 0.05=3946
-# 0.01=2286
+# 0.1=5204
+# 0.05=3991
+# 0.01=2325
 
 ###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
 
@@ -433,8 +435,8 @@ head(results)
 nrow(resBOTH27[resBOTH27$padj<0.1 & resBOTH27$log2FoldChange > 0 & !is.na(resBOTH27$padj),])
 nrow(resBOTH27[resBOTH27$padj<0.1 & resBOTH27$log2FoldChange < 0 & !is.na(resBOTH27$padj),])
 ```
-**UP in BOTH27 2763**
-**DOWN in BOTH27 2395**
+**UP in BOTH27 2771**
+**DOWN in BOTH27 2433**
 
 ###write data in a table
 ```{r}
@@ -506,7 +508,7 @@ length(rld[,1])
 
 #bind together pvalues and rlog data 
 **FALSE  TRUE**
-13208 17906 
+7234 17639 
 ```{r}
 rldpvals=cbind(rld,valMI32, valSM32, valBOTH27, valBOTH32)
 head(rldpvals)
@@ -521,6 +523,7 @@ write.csv(rldpvals, "Symbiont_RLDandPVALS.csv", quote=F)
 colnames(rld)=paste(colData$treat)
 head(rld)
 ```
+
 ```{r}
 library(RColorBrewer)
 # Sample distance heatmap. Sample to sample. How similar are each sample
@@ -532,8 +535,8 @@ heatmap.2(as.matrix(sampleDists), key=F, trace="none",
 ```
 
 ### VENN Diagram to include both up and down regulated genes in common for PC02
-# Standard way to show number of DEs. Making series of genes that are up and down in each by pulling on res function
-# making p adjusted cutoff.
+Standard way to show number of DEs. Making series of genes that are up and down in each by pulling on res function
+making p adjusted cutoff.
 ```{r}
 library(VennDiagram)
 
@@ -556,7 +559,7 @@ BOTH27_down=row.names(resBOTH27[resBOTH27$padj<0.1 & !is.na(resBOTH27$padj) & re
 length(BOTH27_down) #2395
 ```
 
-#overall number of genes with correct p value and no NA
+overall number of genes with correct p value and no NA
 ```{r}
 MI32=row.names(resMI32[resMI32$padj<0.1 & !is.na(resMI32$padj),])
 SM32=row.names(resSM32[resSM32$padj<0.1 & !is.na(resSM32$padj),])
@@ -564,46 +567,47 @@ BOTH32=row.names(resBOTH32[resBOTH32$padj<0.1 & !is.na(resBOTH32$padj),])
 BOTH27=row.names(resSM32[resBOTH27$padj<0.1 & !is.na(resBOTH27$padj),])
 ```
 
-#UP. Total number of up genes without repeated isogroups
+#### UP. Total number of up genes without repeated isogroups
 ```{r}
 pdegs05_up=union(BOTH32_up, BOTH27_up)
 length(pdegs05_up)
 ```
 
-**4459**
+**4474**
 
 ```{r}
 pdegs05_up=union(MI32_up, SM32_up)
 length(pdegs05_up)
 ```
-**4403**
-#DOWN. Total number of down genes without repeated isogroups
+**4413**
+
+#### DOWN. Total number of down genes without repeated isogroups
 ```{r}
 pdegs05_down=union(BOTH32_down,BOTH27_down)
 length(pdegs05_down)
 ```
-**3254**
+**3296**
 
 ```{r}
 pdegs05_down=union(MI32_down,SM32_down)
 length(pdegs05_down)
 ```
-**5954**
+**5953**
 
-#ALL
+#### ALL
 ```{r}
 pdegs05=union(MI32,SM32)
 length(pdegs05)
 ```
-**9297**
+**9296**
 
 ```{r}
 pdegs05=union(BOTH32,BOTH27)
 length(pdegs05)
 ```
-**7705**
+**7746**
 
-###do UP, DOWN, ALL. Can change list to plot different things
+#### do UP, DOWN, ALL. Can change list to plot different things
 ```{r}
 candidates=list("MI32"=MI32_up, "SM"=SM32_up)
 
@@ -673,3 +677,133 @@ prettyvenn=venn.diagram(
 );
 grid.draw(prettyvenn)
 ```
+
+### Heat map of sample distances for pco2
+We only use columns 1 through 8 to cut off pvalues becase we don't want to visulise them
+```{r}
+setwd("C:/Users/Corey/Downloads/Bi586/Assign_2/Divergent-Symbiont-Thermal-Tolerances")
+rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
+head(rldpvals)
+rld=rldpvals[,1:8]
+head(rld)
+```
+
+```{r}
+sampleDists <- dist(t(rld))
+sampleDistMatrix <- as.matrix( sampleDists )
+treat=c( "MI_32", "MI_32", "MI_27", "MI_27", "SM_32", "SM_32", "SM_27", "SM_27")
+colnames(sampleDistMatrix)=paste(treat)
+rownames(sampleDistMatrix)=paste(treat)
+```
+
+Same heatmap as before but with color scales
+```{r}
+heat.colors = colorRampPalette(rev(c("blue","yellow","red")),bias=0.3)(100)
+pheatmap(sampleDistMatrix,color = heat.colors,cex=0.9,border_color=NA,cluster_rows=T,cluster_cols=T)
+```
+
+###PCA looks at distance between samples. Focusing on PCA 1 and 2
+
+head(pca)
+```{r}
+rld_t=t(rld)
+pca <- prcomp(rld_t,center = TRUE, scale. = TRUE)
+li <- pca$sdev^2 / sum(pca$sdev^2)
+pc1v <- round(li[1] * 100, 1)
+pc2v <- round(li[2] * 100, 1)
+pca_s <- as.data.frame(pca$x)
+head(pca_s)
+pca_s <- pca_s[,c(1,2)]
+pca_s$Samples = row.names(pca_s)
+pca_s$treat=colData$treat
+head(pca_s)
+```
+
+```{r}
+cbPalette <- c("darkgoldenrod2",  "darkolivegreen3", "dodgerblue3", "red")
+ggplot(pca_s, aes(PC1, PC2, color = treat, pch = treat)) +
+  geom_point(size=3) +
+  #  geom_text_repel(aes(label=Samples)) +
+  scale_colour_manual(values=cbPalette)+
+  theme_bw() +
+  # geom_density2d(alpha=.5)+
+  geom_polygon(alpha=.2)+
+  xlab(paste0("PC1: ",pc1v,"% variance")) +
+  ylab(paste0("PC2: ",pc2v,"% variance")) 
+```
+  
+# tests if distances is significantly different. Treatment is having signficant effect 
+```{r}
+adonis(pca$x ~ treat, data = pca_s, method='eu', na.rm = TRUE)
+```
+                   Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
+treat      3    129848   43283  3.9115 0.74578  0.013 *
+Residuals  4     44263   11066         0.25422         
+Total      7    174111                 1.00000   
+
+
+#### Heatmaps for genes NS vs FR
+```{r}
+rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
+head(rldpvals)
+rld_site= rldpvals[,1:9]
+head(rld_site)
+gg=read.table("transcript2geneDescription.out",sep="\t", row.names=1)
+head(gg)
+```
+
+nrow(rldpvals[rldpvals$padj.76<0.01& !is.na(rldpvals$padj.76),])
+#242
+
+topnum= 100 # number of DEGS
+head(rldpvals)
+top100=head(rldpvals[order(rldpvals$padj.76), ],topnum)
+head(top100)
+length(top100[,1])
+summary(top100)
+###
+library(pheatmap)
+head(top100)
+p.val=0.1 # FDR cutoff
+conds=top100[top100$padj.76<=p.val & !is.na(top100$padj.76),]
+length(conds[,1])
+
+exp=conds[,1:9] # change numbers to be your vsd data columns
+means=apply(exp,1,mean) # means of rows
+explc=exp-means # subtracting them
+head(explc)
+
+ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+
+pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
+
+###################################Heatmap for the genes in common
+rldpvals <- read.csv(file="Crep2016_RLDandPVALS.csv", row.names=1)
+head(rldpvals)
+p.val=0.1 # FDR cutoff
+conds=rldpvals[rldpvals$padj.76<=p.val & !is.na(rldpvals$padj.76) & rldpvals$padj.75<=p.val & !is.na(rldpvals$padj.75),]
+rld_data= conds[,c(1:9)]
+head(rld_data)
+nrow(rld_data)
+gg=read.table("Crep454_iso2gene.tab",sep="\t", row.names=1)
+library(pheatmap)
+means=apply(rld_data,1,mean) # means of rows
+explc=rld_data-means # subtracting them
+
+ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+
+pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
+
+# Make annotation table for pheatmap
+ann = data.frame(cond = c('7.5', '7.5', '7.5', '7.6', '7.6', '7.6', '8', '8', '8'))
+rownames(ann) <- names(explc)
+
+# Set colors
+Var1        <- c("darkgoldenrod2",  "darkolivegreen3", "dodgerblue3")
+names(Var1) <- c("7.5", "7.6", "8")
+anno_colors <- list(cond = Var1)
+
+pheatmap(as.matrix(explc),annotation_col=ann,annotation_colors=anno_colors,cex=1.2,color=col0,border_color=NA,clustering_distance_rows="correlation",clustering_distance_cols="correlation", show_rownames=T)
+
