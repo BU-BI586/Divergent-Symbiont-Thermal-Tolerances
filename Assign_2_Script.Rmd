@@ -748,16 +748,38 @@ rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
 head(rldpvals)
 rld_site= rldpvals[,1:9]
 head(rld_site)
-gg=read.table("transcript2geneDescription.out",sep="\t", row.names=1)
+gg=read.table("transcript2geneDescription.out.txt",sep="\t", row.names=1)
 head(gg)
 ```
 
-nrow(rldpvals[rldpvals$padj.76<0.01& !is.na(rldpvals$padj.76),])
-#242
 
+```{r}
+nrow(rldpvals[rldpvals$padj.MI32<0.01& !is.na(rldpvals$padj.MI32),])
+```
+#1646
+
+```{r}
+nrow(rldpvals[rldpvals$padj.SM32<0.01& !is.na(rldpvals$padj.SM32),])
+```
+#3342
+
+```{r}
+nrow(rldpvals[rldpvals$padj.BOTH27<0.01& !is.na(rldpvals$padj.BOTH27),])
+```
+#2325
+
+```{r}
+nrow(rldpvals[rldpvals$padj.BOTH32<0.01& !is.na(rldpvals$padj.BOTH32),])
+```
+#1738
+
+# I think this is the top 100 DEGs for each of the 4 treatments??
+
+# MI32
+```{r}
 topnum= 100 # number of DEGS
 head(rldpvals)
-top100=head(rldpvals[order(rldpvals$padj.76), ],topnum)
+top100=head(rldpvals[order(rldpvals$padj.MI32), ],topnum)
 head(top100)
 length(top100[,1])
 summary(top100)
@@ -765,10 +787,10 @@ summary(top100)
 library(pheatmap)
 head(top100)
 p.val=0.1 # FDR cutoff
-conds=top100[top100$padj.76<=p.val & !is.na(top100$padj.76),]
+conds=top100[top100$padj.MI32<=p.val & !is.na(top100$padj.MI32),]
 length(conds[,1])
 
-exp=conds[,1:9] # change numbers to be your vsd data columns
+exp=conds[,1:8] # change numbers to be your vsd data columns
 means=apply(exp,1,mean) # means of rows
 explc=exp-means # subtracting them
 head(explc)
@@ -777,16 +799,103 @@ ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan
 col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
 
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
+```
+
+#SM32
+```{r}
+topnum= 100 # number of DEGS
+head(rldpvals)
+top100=head(rldpvals[order(rldpvals$padj.SM32), ],topnum)
+head(top100)
+length(top100[,1])
+summary(top100)
+###
+library(pheatmap)
+head(top100)
+p.val=0.1 # FDR cutoff
+conds=top100[top100$padj.SM32<=p.val & !is.na(top100$padj.SM32),]
+length(conds[,1])
+
+exp=conds[,1:8] # change numbers to be your vsd data columns
+means=apply(exp,1,mean) # means of rows
+explc=exp-means # subtracting them
+head(explc)
+
+ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+
+pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
+```
+
+# BOTH27
+```{r}
+topnum= 100 # number of DEGS
+head(rldpvals)
+top100=head(rldpvals[order(rldpvals$padj.BOTH27), ],topnum)
+head(top100)
+length(top100[,1])
+summary(top100)
+###
+library(pheatmap)
+head(top100)
+p.val=0.1 # FDR cutoff
+conds=top100[top100$padj.BOTH27<=p.val & !is.na(top100$padj.BOTH27),]
+length(conds[,1])
+
+exp=conds[,1:8] # change numbers to be your vsd data columns
+means=apply(exp,1,mean) # means of rows
+explc=exp-means # subtracting them
+head(explc)
+
+ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+
+pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
+```
+
+# BOTH32
+```{r}
+topnum= 100 # number of DEGS
+head(rldpvals)
+top100=head(rldpvals[order(rldpvals$padj.BOTH32), ],topnum)
+head(top100)
+length(top100[,1])
+summary(top100)
+###
+library(pheatmap)
+head(top100)
+p.val=0.1 # FDR cutoff
+conds=top100[top100$padj.BOTH32<=p.val & !is.na(top100$padj.BOTH32),]
+length(conds[,1])
+
+exp=conds[,1:8] # change numbers to be your vsd data columns
+means=apply(exp,1,mean) # means of rows
+explc=exp-means # subtracting them
+head(explc)
+
+ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+
+pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
+```
+
+
+
 
 ###################################Heatmap for the genes in common
-rldpvals <- read.csv(file="Crep2016_RLDandPVALS.csv", row.names=1)
+
+#Not sure how to set this up but here goes...
+
+# MI32 & SM32
+```{r}
+rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
 head(rldpvals)
 p.val=0.1 # FDR cutoff
-conds=rldpvals[rldpvals$padj.76<=p.val & !is.na(rldpvals$padj.76) & rldpvals$padj.75<=p.val & !is.na(rldpvals$padj.75),]
-rld_data= conds[,c(1:9)]
+conds=rldpvals[rldpvals$padj.MI32<=p.val & !is.na(rldpvals$padj.MI32) & rldpvals$padj.SM32<=p.val & !is.na(rldpvals$padj.SM32),]
+rld_data= conds[,c(1:8)]
 head(rld_data)
 nrow(rld_data)
-gg=read.table("Crep454_iso2gene.tab",sep="\t", row.names=1)
+gg=read.table("transcript2geneDescription.out.txt",sep="\t", row.names=1)
 library(pheatmap)
 means=apply(rld_data,1,mean) # means of rows
 explc=rld_data-means # subtracting them
@@ -795,15 +904,59 @@ ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan
 col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
 
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
+```
+
+# BOTH27 and BOTH32
+```{r}
+rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
+head(rldpvals)
+p.val=0.1 # FDR cutoff
+conds=rldpvals[rldpvals$padj.BOTH27<=p.val & !is.na(rldpvals$padj.BOTH27) & rldpvals$padj.BOTH32<=p.val & !is.na(rldpvals$padj.BOTH32),]
+rld_data= conds[,c(1:8)]
+head(rld_data)
+nrow(rld_data)
+gg=read.table("transcript2geneDescription.out.txt",sep="\t", row.names=1)
+library(pheatmap)
+means=apply(rld_data,1,mean) # means of rows
+explc=rld_data-means # subtracting them
+
+ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
+
+pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
+```
+
+## This is where I got stuck :(
 
 # Make annotation table for pheatmap
-ann = data.frame(cond = c('7.5', '7.5', '7.5', '7.6', '7.6', '7.6', '8', '8', '8'))
+```{r}
+ann = data.frame(cond = c('MI_32', 'MI_32.1', 'MI_27', 'MI_27.1', 'SM_32', 'SM_32.1', 'SM_27', 'SM_27.1'))
+rownames(ann) <- names(explc)
+```
+
+ann = data.frame(cond = c('MI_32', 'MI_32.1', 'MI_27', 'MI_27.1', 'SM_32', 'SM_32.1', 'SM_27', 'SM_27.1'))
 rownames(ann) <- names(explc)
 
 # Set colors
+```{r}
+Var1        <- c("darkgoldenrod2", "darkolivegreen3", "dodgerblue3")
+names(Var1) <- c("MI", "SM", "BOTH")
+anno_colors <- list(cond = Var1)
+```
+
 Var1        <- c("darkgoldenrod2",  "darkolivegreen3", "dodgerblue3")
 names(Var1) <- c("7.5", "7.6", "8")
 anno_colors <- list(cond = Var1)
 
+```{r}
+pheatmap(as.matrix(explc),annotation_col=ann,annotation_colors=anno_colors,cex=1.2,color=col0,border_color=NA,clustering_distance_rows="correlation",clustering_distance_cols="correlation", show_rownames=T)
+```
+
+
 pheatmap(as.matrix(explc),annotation_col=ann,annotation_colors=anno_colors,cex=1.2,color=col0,border_color=NA,clustering_distance_rows="correlation",clustering_distance_cols="correlation", show_rownames=T)
 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
