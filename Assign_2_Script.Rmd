@@ -37,7 +37,7 @@ library(ggrepel)
 
 Set your working directory
 ```{r}
-setwd("C:/Users/corey/Downloads/Bi586/Assign_2")
+setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2")
 ```
 Now we read in our count data
 ```{r} 
@@ -63,8 +63,8 @@ gg=read.table("Crep454_iso2gene.tab",sep="\t",quote="", row.names=1)
 
 First set the working directory and create a condtions table
 ```{r}
-setwd("C:/Users/corey/Downloads/Bi586/Assign_2/outlier")
-v=setwd("C:/Users/corey/Downloads/Bi586/Assign_2/outlier")
+setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2/outlier")
+v=setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2/outlier")
 treat=c( "MI_32a", "MI_32b", "MI_27a", "MI_27b", "SM_32a", "SM_32b", "SM_27a", "SM_27b")
 g=data.frame(treat)
 g
@@ -91,7 +91,7 @@ arrayQualityMetrics(e,outdir=v,intgroup=c("treat"),force=T)
 
 #Going back to main working directory
 ```{r}
-setwd("C:/Users/corey/Downloads/Bi586/Assign_2")
+setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2")
 ```
 
 #read in counts Same stuff again after outliers
@@ -681,7 +681,7 @@ grid.draw(prettyvenn)
 ### Heat map of sample distances for pco2
 We only use columns 1 through 8 to cut off pvalues becase we don't want to visulise them
 ```{r}
-setwd("C:/Users/Corey/Downloads/Bi586/Assign_2/Divergent-Symbiont-Thermal-Tolerances")
+setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2")
 rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
 head(rldpvals)
 rld=rldpvals[,1:8]
@@ -939,8 +939,8 @@ rownames(ann) <- names(explc)
 
 # Set colors
 ```{r}
-Var1        <- c("darkgoldenrod2", "darkolivegreen3", "dodgerblue3")
-names(Var1) <- c("MI", "SM", "BOTH")
+Var1        <- c("darkgoldenrod2", "darkolivegreen3", "dodgerblue3", "cyan", "aliceblue", "azure", "blue", "brown")
+names(Var1) <- c('MI_32', 'MI_32.1', 'MI_27', 'MI_27.1', 'SM_32', 'SM_32.1', 'SM_27', 'SM_27.1')
 anno_colors <- list(cond = Var1)
 ```
 
