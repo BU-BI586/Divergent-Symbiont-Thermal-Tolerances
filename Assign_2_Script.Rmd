@@ -7,47 +7,51 @@ output: html_document
 
 # Introduction
 
-Different Symbiodiniaceae species and populations can convey different thermal tolerances to their coral host. However, the genes that control symbiont thermal tolerance are still unclear. Levin et al. (2016) attempted to address this gap in knowledge by comparing two heterogeneous populations of type C1 *Symbiodinium* from the same species of coral host (*Acropora tenuis*) living in two distinct sites on the Great Barrier Reef. The population from South Molle Island (SM) is considered thermally sensitive while the population from Magnetic Island (MI) is thermally tolerant allowing them to compare differentially expressed genes based on thermal tolerance level. We are now using their data but analyzing it through a different pathway to determine what genes are differentially expressed as a result of temperature stress.
+Different Symbiodiniaceae species and populations can convey different thermal tolerances to their coral host. However, the genes that control symbiont thermal tolerance are still unclear. Levin et al. (2016) attempted to address this gap in knowledge by comparing two heterogeneous populations of type C1 *Symbiodinium* from the same species of coral host (*Acropora tenuis*) living in two distinct sites on the Great Barrier Reef. The population from South Molle Island (SM) is considered thermally sensitive while the population from Magnetic Island (MI) is thermally tolerant allowing them to compare differentially expressed genes based on thermal tolerance level. We are now using their data but analyzing it through a different pathway to determine what genes are differentially expressed as a result of temperature stress. Specifically, we are comparing differentially expressed genes both within and between sample populations to determine what genes are differentially expressed in thermally tolerant and sensitive populations and how those responses vary by tolerance.
 
 **R version** 
 
 We used R version R-4.0.3 ADD in package versions before submitting
 
 # DESeq2 and GO enrichment pathways
-In order to understand the genes that are differentially expressed due to thermal tolerance, we used the Deseq2 and Go enrichment pathways. Deseq2 allows us to compare gene counts between treatment to determine what is differentially expressed. This data is then funneled into the Go enrichment pathway to determine the functions of the differentially expressed genes.
+In order to understand the genes that are differentially expressed due to thermal tolerance, we used the Deseq2 and GO enrichment pathways. Deseq2 allows us to compare gene counts between treatment to determine what is differentially expressed. This data is then funneled into the Go enrichment pathway to determine the functions of the differentially expressed genes.
 
 # Deseq2 pipeline
 
 ### Preparation Steps
+
 **We first loaded the appropriate libraries for all the analysis and graphs.**
 
 ```{r, loadlib, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
-library(DESeq2) 
-library(affycoretools)
-library(arrayQualityMetrics)
-library(genefilter)
-library(Biobase)
-library(ggplot2)
-library(dplyr)
-library(tidyverse)
-library(pheatmap)
-library(vegan)
-library(ggrepel)
+library(DESeq2) #Version 1.30.1
+library(affycoretools) #Version 1.62.0
+library(arrayQualityMetrics) #Version 3.46.0
+library(genefilter) #Version 1.72.1
+library(Biobase) #Version 2.50.0
+library(ggplot2) #Version 3.3.3
+library(dplyr) #Version 1.0.5
+library(tidyverse) #Version 1.3.0
+library(pheatmap) #Version 1.0.12
+library(vegan) #Version 2.5.7
+library(ggrepel) #Version 0.9.1
+library(RColorBrewer) #Version 1.1.2
+library(gplots) #Version 3.1.1
+library(VennDiagram) #Version 1.6.20
 ```
 
 Set your working directory
 ```{r}
-setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2")
+setwd("C:/Users/Corey/Downloads/Bi586/Assign_2/Divergent-Symbiont-Thermal-Tolerances")
 ```
+
 Now we read in our count data
 ```{r} 
 countData <- read.table("LevinCounts.txt")
 head(countData)
 length(countData[,1])
-#### length = 31114
 ```
 
-**Now we are changing the names of our columns to make it easier to read and understand. The first part of the name refers to the site the sample was from and the second part refers to the temperature the sample was taken at. All samples were taken after 13 days at their respective temperatures. 
+Next we change the names of our columns to make it easier to read and understand. The first part of the name refers to the site the sample was from and the second part refers to the temperature the sample was taken at. All samples were taken after 13 days at their respective temperatures. 
 ```{r}
 names(countData)=c( "MI_32a", "MI_32b", "MI_27a", "MI_27b", "SM_32a", "SM_32b", "SM_27a", "SM_27b")
 row.names(countData)=sub("", "isogroup", rownames(countData))
@@ -55,22 +59,21 @@ head(countData)
 ```
 
 
-###-------Not sure we need this step now. I think its just for the Go enrichment
-#Make sure you can succesfully read in the iso2gene tab separated file
-gg=read.table("Crep454_iso2gene.tab",sep="\t",quote="", row.names=1) 
-
 ### Check for outliers
 
-First set the working directory and create a condtions table
+It is important to remove outliers are they can arise from techinal issues and skew results
+
+First set the working directory and create a conditions table
 ```{r}
-setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2/outlier")
-v=setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2/outlier")
+setwd("C:/Users/Corey/Downloads/Bi586/Assign_2/Divergent-Symbiont-Thermal-Tolerances/outlier")
+v=setwd("C:/Users/Corey/Downloads/Bi586/Assign_2/Divergent-Symbiont-Thermal-Tolerances/outlier")
 treat=c( "MI_32a", "MI_32b", "MI_27a", "MI_27b", "SM_32a", "SM_32b", "SM_27a", "SM_27b")
 g=data.frame(treat)
 g
 colData= g
 ```
 
+We had to round all our data to the nearest whole number as integers are required for the deseq object creation
 ```{r}
 countData <- round(countData, digits=0)
 ```
@@ -87,40 +90,34 @@ e=ExpressionSet(assay(rl), AnnotatedDataFrame(as.data.frame(colData(rl))))
 arrayQualityMetrics(e,outdir=v,intgroup=c("treat"),force=T)
 ```
 
-**No outliers found!!**
+**No outliers found!! We can now continue on with the rest of the pipeline**
 
-#Going back to main working directory
-```{r}
-setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2")
-```
+### Identifying differentially expressed genes
 
-#read in counts Same stuff again after outliers
+Return to the working directory and reading in our counts data again. We renamed the data as detailed above.
 ```{r}
+setwd("C:/Users/Corey/Downloads/Bi586/Assign_2/Divergent-Symbiont-Thermal-Tolerances")
 countData <- read.table("LevinCounts.txt")
-head(countData)
 length(countData[,1])
 ```
-#31114
 
 ```{r}
 names(countData)=c( "MI_32a", "MI_32b", "MI_27a", "MI_27b", "SM_32a", "SM_32b", "SM_27a", "SM_27b")
 row.names(countData)=sub("", "isogroup", rownames(countData))
-head(countData)
 ```
 
-##total number of raw counts. Useful to report
+Here you can see our total raw counts for each sample. In our particular data set we have both mRNA and long non-coding RNA so we may have a lot more reads than other groups.
 ```{r}
 totalCounts=colSums(countData)
 totalCounts
-barplot(totalCounts, col=c("coral", "coral", "coral", "red", "red", "red", "blue", "blue"), ylab="raw counts")
+barplot(totalCounts, col=c("coral", "coral", "cyan", "cyan", "red", "red", "blue", "blue"), ylab="raw counts")
 ```
 
-**MI_32a  MI_32b  MI_27a  MI_27b  SM_32a  SM_32b  SM_27a  SM_27b**
-**2968600 3160913 3025741 3014954 3840001 3629641 2930790 3279507**
+Figure 1. Total raw counts in each sample. The y-axis shows the total raw number of counts with the x-axis denoting the samples. Samples from the same site and temperature are denoted by color choice. 
 
 
-creating call data again
-```{r}
+**As we did when checking for outliers, we create the same conditions table and deseq object**
+```{r, echo=TRUE, results = FALSE}
 treat=c( "MI_32", "MI_32", "MI_27", "MI_27", "SM_32", "SM_32", "SM_27", "SM_27")
 g=data.frame(treat)
 g
@@ -128,101 +125,74 @@ colData= g
 countData <- round(countData, digits=0)
 ```
 
-###same deseq object as above
-```{r}
+```{r, warning=FALSE}
 dds=DESeqDataSetFromMatrix(countData=countData,
                            colData = g,
                            design = ~treat)
 ```
 
-#one step DESeq. Can run ones that are way more complicated 
-```{r}
+**Now we run a one step DESeq on our data**
+
+This estimates size factors and dispersions meaning we are calcualting the relative library depth of the samples and checking the count dispersion of a gene. Creates gene-wise dispersion estimates and mean-dispersion relationship as well as create final dispersion estimates and fitting model and testing.
+```{r, warning=FALSE}
 dds<-DESeq(dds)
 ```
-# estimating size factors
-# estimating dispersions
-# gene-wise dispersion estimates
-# mean-dispersion relationship
-# final dispersion estimates
-# fitting model and testing
 
+Before saving the results of the DESeq we removed genes that did have at least a count of 10 in at least 3 samples. We did this because after we did normalization we had many genes that were zeros in all samples so we had to manually remove them in this step. 
 ```{r}
 keep <- rowSums(counts(dds) >= 10) >= 3
 dds<-dds[keep,]
-head(dds)
 res<- results(dds)
 ```
 
-#Look at dispersions plot. We want it to look like a hockey stick
-###normalization method. Shows what DEseq2 is doing to your data
+Here is our dispersion plot
 ```{r}
 plotDispEsts(dds, main="Dispersion plot Symbionts")
 ```
+Figure 2: A visulization of what DESeq is doing to our data. This is its normalization method fitting our data to this curve of plotting dispersion against the mean of normalized counts 
 
-#####MI_27 vs MI_32 pairwise comparisons. Starting to look for DE genes
-#treatment first control second
+### MI_27 vs MI_32 pairwise comparisons. 
+**This is our first comparison to start to looking for differentially expressed genes**
+
+This is comparing thermally tolerant symbionts that were kept at control temperature and those exposed to heat stress to determine what genes were differentially expressed in response to heat stress in one population.
 ```{r}
 colData$MI32<-factor(colData$treat, levels=c("MI_32","MI_27")) 
 resMI32 <- results(dds, contrast=c("treat","MI_32","MI_27"))
 ```
-#how many FDR < 10%?
+
+This tells us how many genes were differentially expressed based on the p adjusted value. Using a p adjusted value accounts for mutliple test corrections
 ```{r}
 table(resMI32$padj<0.01)
 ```
-# 0.1=4248
-# 0.05=3133
-# 0.01=1646
 
-###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
 
-##shows genes removed and totals up and downregulated relative to control
+This is a summary of the number of genes up and down-regulated relative to the control at a p adjusted value of 0.1
 ```{r}
 summary(resMI32)
 ```
 
-##another way to look at it 
+We set a higher ylim because of some very large fold changes
 ```{r}
-nrow(resMI32[resMI32$padj<0.01 & !is.na(resMI32$padj),]) 
+plotMA(resMI32, main="MI_32 vs MI_27", ylim=c(-10,10))
 ```
-# Num significantly differentially expressed genes excluding the no/low count genes   
+Figure 3: MA plot for MI_32 vs MI_27. The x-axis is the mean of normalized counts which is basically the depth of coverage (low expressed genes are further to the left). The y-axis plots the log fold change indictating whether the genes are up or down-regulated. There is always more differentially expressed genes further to the right as it is hard to find them when the depth of coverage is low. The blue color spots are the differentially expressed genes
 
-dev.off()
-### mean of normalized counts. far right is more highly expressed genes, 
-###more likely to find DE genes a=among those highly expressed. hard to find when low coverage
-```{r}
-plotMA(resMI32, main="MI_32 vs MI_27")
-```
-
-```{r}
-plotMA(resMI32, main="MI_32 vs MI_27", ylim=c(-20,20))
-```
-
-##put results in dataframe
+This puts our results into a data frame.
 ```{r}
 results <- as.data.frame(resMI32)
 head(results)
 ```
-##another way to look at up and down regulated genes
-```{r}
-nrow(resMI32[resMI32$padj<0.1 & resMI32$log2FoldChange > 0 & !is.na(resMI32$padj),])
-nrow(resMI32[resMI32$padj<0.1 & resMI32$log2FoldChange < 0 & !is.na(resMI32$padj),])
-```
-**UP in MI32 2087**
-**DOWN in Mi32 2161**
 
-###write data in a table
+We write our data into a table to be used for later usage and read it back in to make a GO table
 ```{r}
 write.table(resMI32, file="MI_32.txt", quote=F, sep="\t")
-```
-###read the table back in
-```{r}
 cd <- read.table("MI_32.txt")
 head(cd)
 ```
 
 
-###this is taking each isogroup and making ranked p value with directionality
-```{r}
+This makes our GO table. The code takes the log fold change and makes ranked p vaues with directionality
+```{r, echo=TRUE, message= FALSE}
 cd
 go_input_MI32 = cd %>%
   tibble::rownames_to_column(var = "iso") %>%
@@ -238,66 +208,39 @@ write.csv(go_input_MI32, file="MI32_GO.csv", quote=F, row.names=FALSE)
 
 ### SM_32 versus SM_27
 
+We are now running the same thing as above but comparing our thermally sensitive symbiont expression when left at control temperatures or exposed to heat stress.
 ```{r}
 colData$SM32<-factor(colData$treat, levels=c("SM_32","SM_27")) 
 resSM32 <- results(dds, contrast=c("treat","SM_32","SM_27"))
 ```
-#how many FDR < 10%?
+
 ```{r}
-table(resSM32$padj<0.01)
+table(resSM32$padj<0.1)
 ```
-# 0.1=6701
-# 0.05=5259
-# 0.01=3342
 
-###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
-
-##shows genes removed and totals up and downregulated relative to control
 ```{r}
 summary(resSM32)
 ```
 
-##another way to look at it 
+We increased the y limits to better show the large fold changes that occurred in our data.
 ```{r}
-nrow(resSM32[resSM32$padj<0.01 & !is.na(resSM32$padj),]) 
+plotMA(resSM32, main="SM_32 vs SM_27", ylim=c(-10,10))
 ```
-# Num significantly differentially expressed genes excluding the no/low count genes   
+Figure 4: MA plot for SM_32 vs SM_27. The x-axis is the mean of normalized counts which is basically the depth of coverage (low expressed genes are further to the left). The y-axis plots the log fold change indictating whether the genes are up or down-regulated.
 
-dev.off()
-### mean of normalized counts. far right is more highly expressed genes, 
-###more likely to find DE genes a=among those highly expressed. hard to find when low coverage
-```{r}
-plotMA(resSM32, main="SM_32 vs SM_27")
-```
-
-```{r}
-plotMA(resSM32, main="SM_32 vs SM_27", ylim=c(-2,2))
-```
-##put results in dataframe
-```{r}
+```{r, echo=TRUE, message=FALSE}
 results <- as.data.frame(resSM32)
 head(results)
 ```
-##another way to look at up and down regulated genes
-```{r}
-nrow(resSM32[resMI32$padj<0.1 & resSM32$log2FoldChange > 0 & !is.na(resSM32$padj),])
-nrow(resSM32[resMI32$padj<0.1 & resSM32$log2FoldChange < 0 & !is.na(resSM32$padj),])
-```
-**UP in SM32 2541**
-**DOWN in SM32 1706**
 
-###write data in a table
+
+
 ```{r}
 write.table(resSM32, file="SM_32.txt", quote=F, sep="\t")
-```
-###read the table back in
-```{r}
 cd <- read.table("SM_32.txt")
-head(cd)
 ```
 
 
-###this is taking each isogroup and making ranked p value with directionality
 ```{r}
 cd
 go_input_SM32 = cd %>%
@@ -306,74 +249,41 @@ go_input_SM32 = cd %>%
   mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
   na.omit() %>%
   select(iso, mutated_p_updown)
-head(go_input_SM32)
 colnames(go_input_SM32) <- c("gene", "pval")
-head(go_input_SM32)
 write.csv(go_input_SM32, file="SM32_GO.csv", quote=F, row.names=FALSE)
 ```
 
 ### SM_32 versus MI_32
 
+We are now running the same thing as the last two comparsions but now comparing across populations.This looks at the differentially expression at heat stress temperature between thermally tolerant and thermally sensitive symbionts. We treated the thermally sensititve population as the control.
 ```{r}
 colData$BOTH32<-factor(colData$treat, levels=c("MI_32","SM_32")) 
 resBOTH32 <- results(dds, contrast=c("treat","MI_32","SM_32"))
 ```
-#how many FDR < 10%?
+
 ```{r}
-table(resBOTH32$padj<0.01)
+table(resBOTH32$padj<0.1)
 ```
-# 0.1=3704
-# 0.05=2814
-# 0.01=1738
 
-###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
-
-##shows genes removed and totals up and downregulated relative to control
 ```{r}
 summary(resBOTH32)
 ```
-
-##another way to look at it 
-```{r}
-nrow(resBOTH32[resBOTH32$padj<0.01 & !is.na(resBOTH32$padj),]) 
-```
-# Num significantly differentially expressed genes excluding the no/low count genes   
-
-dev.off()
-### mean of normalized counts. far right is more highly expressed genes, 
-###more likely to find DE genes a=among those highly expressed. hard to find when low coverage
-```{r}
-plotMA(resBOTH32, main="MI_32 vs SM_32")
-```
-
+We adjusted the y limits due to some very large fold changes.
 ```{r}
 plotMA(resBOTH32, main="MI_32 vs SM_32", ylim=c(-20,20))
 ```
-##put results in dataframe
+Figure 5: MA plot for MI_32 vs SM_32. The x-axis is the mean of normalized counts which is basically the depth of coverage (low expressed genes are further to the left). The y-axis plots the log fold change indictating whether the genes are up or down-regulated.
+
 ```{r}
 results <- as.data.frame(resBOTH32)
-head(results)
 ```
-##another way to look at up and down regulated genes
-```{r}
-nrow(resBOTH32[resBOTH32$padj<0.1 & resBOTH32$log2FoldChange > 0 & !is.na(resBOTH32$padj),])
-nrow(resBOTH32[resBOTH32$padj<0.1 & resBOTH32$log2FoldChange < 0 & !is.na(resBOTH32$padj),])
-```
-**UP in BOTH32 2682**
-**DOWN in BOTH32 1022**
 
-###write data in a table
 ```{r}
 write.table(resBOTH32, file="BOTH_32.txt", quote=F, sep="\t")
-```
-###read the table back in
-```{r}
 cd <- read.table("BOTH_32.txt")
 head(cd)
 ```
 
-
-###this is taking each isogroup and making ranked p value with directionality
 ```{r}
 cd
 go_input_BOTH32 = cd %>%
@@ -382,74 +292,40 @@ go_input_BOTH32 = cd %>%
   mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
   na.omit() %>%
   select(iso, mutated_p_updown)
-head(go_input_BOTH32)
 colnames(go_input_BOTH32) <- c("gene", "pval")
-head(go_input_BOTH32)
 write.csv(go_input_BOTH32, file="BOTH32_GO.csv", quote=F, row.names=FALSE)
 ```
 
 ### SM_27 versus MI_27
 
+We are now running the same thing as the last two comparsions but now comparing across populations.This looks at the differentially expression at control temperature between thermally tolerant and thermally sensitive symbionts. We treated the thermally sensititve population as the control.
 ```{r}
 colData$BOTH27<-factor(colData$treat, levels=c("MI_27","SM_27")) 
 resBOTH27 <- results(dds, contrast=c("treat","MI_27","SM_27"))
 ```
-#how many FDR < 10%?
+
 ```{r}
-table(resBOTH27$padj<0.01)
+table(resBOTH27$padj<0.1)
 ```
-# 0.1=5204
-# 0.05=3991
-# 0.01=2325
-
-###p adjusted value accounts for comparsions across different treatments.Account for all the times you are comparing things
-
-##shows genes removed and totals up and downregulated relative to control
 ```{r}
 summary(resBOTH27)
 ```
 
-##another way to look at it 
 ```{r}
-nrow(resBOTH27[resBOTH27$padj<0.01 & !is.na(resBOTH27$padj),]) 
+plotMA(resBOTH32, main="MI_27 vs SM_27", ylim=c(-10,10))
 ```
-# Num significantly differentially expressed genes excluding the no/low count genes   
+Figure 5: MA plot for MI_32 vs SM_32. The x-axis is the mean of normalized counts which is basically the depth of coverage (low expressed genes are further to the left). The y-axis plots the log fold change indictating whether the genes are up or down-regulated.
 
-dev.off()
-### mean of normalized counts. far right is more highly expressed genes, 
-###more likely to find DE genes a=among those highly expressed. hard to find when low coverage
-```{r}
-plotMA(resBOTH27, main="MI_27 vs SM_27")
-```
-
-```{r}
-plotMA(resBOTH32, main="MI_27 vs SM_27", ylim=c(-20,20))
-```
-##put results in dataframe
 ```{r}
 results <- as.data.frame(resBOTH27)
 head(results)
 ```
-##another way to look at up and down regulated genes
-```{r}
-nrow(resBOTH27[resBOTH27$padj<0.1 & resBOTH27$log2FoldChange > 0 & !is.na(resBOTH27$padj),])
-nrow(resBOTH27[resBOTH27$padj<0.1 & resBOTH27$log2FoldChange < 0 & !is.na(resBOTH27$padj),])
-```
-**UP in BOTH27 2771**
-**DOWN in BOTH27 2433**
 
-###write data in a table
 ```{r}
 write.table(resBOTH27, file="BOTH_27.txt", quote=F, sep="\t")
-```
-###read the table back in
-```{r}
 cd <- read.table("BOTH_27.txt")
-head(cd)
 ```
 
-
-###this is taking each isogroup and making ranked p value with directionality
 ```{r}
 cd
 go_input_BOTH27 = cd %>%
@@ -465,7 +341,10 @@ write.csv(go_input_BOTH27, file="BOTH27_GO.csv", quote=F, row.names=FALSE)
 ```
 
 
-### Binding two columns and pulling out pvalues. NA means p value is too high
+### Creation of rlog and pvalue table 
+
+First we bind the pvalue and padj columns and pulling out pvalues. NA means p value is too high
+
 ```{r}
 valMI32=cbind(resMI32$pvalue, resMI32$padj)
 head(valMI32)
@@ -496,8 +375,9 @@ table(complete.cases(valBOTH27))
 ```
 
 ### Make rlogdata and pvals table
+
 **Normalization method, important for heatmap and PCA**
-```{r}
+```{r, message=FALSE}
 rlog=rlogTransformation(dds, blind=TRUE) 
 rld=assay(rlog)
 head(rld)
@@ -506,40 +386,34 @@ head(rld)
 length(rld[,1])
 ```
 
-#bind together pvalues and rlog data 
-**FALSE  TRUE**
-7234 17639 
-```{r}
+This binds together pvalues and rlog data so that all the data is in the same table
+```{r, message=FALSE}
 rldpvals=cbind(rld,valMI32, valSM32, valBOTH27, valBOTH32)
 head(rldpvals)
 dim(rldpvals)
 table(complete.cases(rldpvals))
 ```
+
+We now write this table for later plot use
 ```{r}
 write.csv(rldpvals, "Symbiont_RLDandPVALS.csv", quote=F)
-```
-
-```{r}
 colnames(rld)=paste(colData$treat)
 head(rld)
 ```
 
+This is our first sample to sample distance heatmap showing how similar each sample is
 ```{r}
-library(RColorBrewer)
-# Sample distance heatmap. Sample to sample. How similar are each sample
 sampleDists <- as.matrix(dist(t(rld)))
-library(gplots)
 heatmap.2(as.matrix(sampleDists), key=F, trace="none",
           col=colorpanel(100, "black", "white"),
           margin=c(10, 10), main="Sample Distance Matrix")
 ```
+Figure 7: Sample distance heat map. This shows overall gene expression, how similar our different samples are. Samples are nicely clustered together showing that the replicates are most similar to each other.
 
-### VENN Diagram to include both up and down regulated genes in common for PC02
-Standard way to show number of DEs. Making series of genes that are up and down in each by pulling on res function
-making p adjusted cutoff.
+### VENN Diagrams 
+
+First we create a series of genes that are up and down-regulated from each of our earlier pairwise comparsions. We set a padj and logfold change cut off
 ```{r}
-library(VennDiagram)
-
 MI32_up=row.names(resMI32[resMI32$padj<0.1 & !is.na(resMI32$padj) & resMI32$log2FoldChange>0,])
 length(MI32_up) #2077
 MI32_down=row.names(resMI32[resMI32$padj<0.1 & !is.na(resMI32$padj) & resMI32$log2FoldChange<0,])
@@ -567,49 +441,43 @@ BOTH32=row.names(resBOTH32[resBOTH32$padj<0.1 & !is.na(resBOTH32$padj),])
 BOTH27=row.names(resSM32[resBOTH27$padj<0.1 & !is.na(resBOTH27$padj),])
 ```
 
-#### UP. Total number of up genes without repeated isogroups
+We can look at the overall number of up or down genes across the two samples without repeated isogroups. 
+
+**UP**
 ```{r}
 pdegs05_up=union(BOTH32_up, BOTH27_up)
 length(pdegs05_up)
 ```
 
-**4474**
-
 ```{r}
 pdegs05_up=union(MI32_up, SM32_up)
 length(pdegs05_up)
 ```
-**4413**
 
-#### DOWN. Total number of down genes without repeated isogroups
+
+**DOWN**
 ```{r}
 pdegs05_down=union(BOTH32_down,BOTH27_down)
 length(pdegs05_down)
 ```
-**3296**
 
 ```{r}
 pdegs05_down=union(MI32_down,SM32_down)
 length(pdegs05_down)
 ```
-**5953**
-
-#### ALL
+**ALL**
 ```{r}
 pdegs05=union(MI32,SM32)
 length(pdegs05)
 ```
-**9296**
-
 ```{r}
 pdegs05=union(BOTH32,BOTH27)
 length(pdegs05)
 ```
-**7746**
 
-#### do UP, DOWN, ALL. Can change list to plot different things
+Venn diagram comparing the differentially expressed genes in the thermally tolerant versus thermally sensitive populations when heat stressed
 ```{r}
-candidates=list("MI32"=MI32_up, "SM"=SM32_up)
+candidates=list("MI32"=MI32, "SM32"=SM32)
 
 prettyvenn=venn.diagram(
   x = candidates,
@@ -617,7 +485,6 @@ prettyvenn=venn.diagram(
   col = "transparent",
   fill = c("coral2", "forestgreen"),
   alpha = 0.5,
-  # label.col = c("darkred", "white", "darkgreen", "white", "white", "white", "blue4"),
   cex = 2.5,
   fontfamily = "sans",
   fontface = "bold",
@@ -628,64 +495,17 @@ prettyvenn=venn.diagram(
   cat.dist = c(0.08, 0.08),
   cat.pos = 1
 );
+grid.newpage()
 grid.draw(prettyvenn)
 ```
-
-```{r}
-candidates=list("MI32"=MI32_down, "SM"=SM32_down)
-
-prettyvenn=venn.diagram(
-  x = candidates,
-  filename=NULL,
-  col = "transparent",
-  fill = c("coral2", "forestgreen"),
-  alpha = 0.5,
-  # label.col = c("darkred", "white", "darkgreen", "white", "white", "white", "blue4"),
-  cex = 2.5,
-  fontfamily = "sans",
-  fontface = "bold",
-  cat.default.pos = "text",
-  cat.col = c("darkred", "darkgreen"),
-  cat.cex = 2.5,
-  cat.fontfamily = "sans",
-  cat.dist = c(0.08, 0.08),
-  cat.pos = 1
-);
-grid.draw(prettyvenn)
-```
-
-
-```{r}
-candidates=list("M"=MI32_up, "SM"=SM32_up)
-
-prettyvenn=venn.diagram(
-  x = candidates,
-  filename=NULL,
-  col = "transparent",
-  fill = c("coral2", "forestgreen"),
-  alpha = 0.5,
-  # label.col = c("darkred", "white", "darkgreen", "white", "white", "white", "blue4"),
-  cex = 2.5,
-  fontfamily = "sans",
-  fontface = "bold",
-  cat.default.pos = "text",
-  cat.col = c("darkred", "darkgreen"),
-  cat.cex = 2.5,
-  cat.fontfamily = "sans",
-  cat.dist = c(0.08, 0.08),
-  cat.pos = 1
-);
-grid.draw(prettyvenn)
-```
+Figure 8: Venn diagram comparing the number of differentially expressed genes when thermally stressed and thermally tolerant symbionts are exposed to heat stress. SM is the thermally sensitive symbionts and MI are the thermally tolerant ones. The datasets graphed are from our pairwise comparison of the heat stress expression to the control expression. Overall, the thermally sensitive ones had much more differentially expressed genes.
 
 ### Heat map of sample distances for pco2
-We only use columns 1 through 8 to cut off pvalues becase we don't want to visulise them
+We only use columns 1 through 8 to cut off pvalues because we don't want to visualize them
 ```{r}
-setwd("C:/Users/Bruce Gan/Desktop/BI586/HW2")
 rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
 head(rldpvals)
 rld=rldpvals[,1:8]
-head(rld)
 ```
 
 ```{r}
@@ -701,10 +521,13 @@ Same heatmap as before but with color scales
 heat.colors = colorRampPalette(rev(c("blue","yellow","red")),bias=0.3)(100)
 pheatmap(sampleDistMatrix,color = heat.colors,cex=0.9,border_color=NA,cluster_rows=T,cluster_cols=T)
 ```
+Figure 9: Sample distance heat map. This shows overall gene expression, how similar our different samples are. Samples are nicely clustered together showing that the replicates are most similar to each other.
 
-###PCA looks at distance between samples. Focusing on PCA 1 and 2
 
-head(pca)
+### PCA 
+
+PCAs looks at distance between samples. It can do as many PCA as there are samples but we focus on PCA 1 and 2 as they explain the most variance.
+
 ```{r}
 rld_t=t(rld)
 pca <- prcomp(rld_t,center = TRUE, scale. = TRUE)
@@ -723,7 +546,6 @@ head(pca_s)
 cbPalette <- c("darkgoldenrod2",  "darkolivegreen3", "dodgerblue3", "red")
 ggplot(pca_s, aes(PC1, PC2, color = treat, pch = treat)) +
   geom_point(size=3) +
-  #  geom_text_repel(aes(label=Samples)) +
   scale_colour_manual(values=cbPalette)+
   theme_bw() +
   # geom_density2d(alpha=.5)+
@@ -731,69 +553,46 @@ ggplot(pca_s, aes(PC1, PC2, color = treat, pch = treat)) +
   xlab(paste0("PC1: ",pc1v,"% variance")) +
   ylab(paste0("PC2: ",pc2v,"% variance")) 
 ```
-  
-# tests if distances is significantly different. Treatment is having signficant effect 
+Figure 10: PCA analysis of our samples. MI are the thermally tolerant symbionts and SM are the thermally sensitive ones. Those that have a 27 in the name are the controls while the other samples are the heat stressed. Each category had two replicates.
+
+
+Test if distances is significantly different. Treatment is having signficant effect 
 ```{r}
 adonis(pca$x ~ treat, data = pca_s, method='eu', na.rm = TRUE)
 ```
-                   Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
-treat      3    129848   43283  3.9115 0.74578  0.013 *
+       Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
+treat      3    129848   43283  3.9115 0.74578  0.011 *
 Residuals  4     44263   11066         0.25422         
-Total      7    174111                 1.00000   
+Total      7    174111                 1.00000 
 
 
-#### Heatmaps for genes NS vs FR
+### Heatmaps for genes based on expression in each treatment
+
 ```{r}
 rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
 head(rldpvals)
-rld_site= rldpvals[,1:9]
+rld_site= rldpvals[,1:8]
 head(rld_site)
 gg=read.table("transcript2geneDescription.out.txt",sep="\t", row.names=1)
 head(gg)
 ```
 
+Here we create four heatmaps based on the top 100 differentially expressed genes in each of the four treatments. 
 
-```{r}
-nrow(rldpvals[rldpvals$padj.MI32<0.01& !is.na(rldpvals$padj.MI32),])
-```
-#1646
+**Heatmap for top 100 DEGs in the thermally tolerant heat stressed treatment(MI32)**
+```{r, echo=FALSE}
+topnum= 100
 
-```{r}
-nrow(rldpvals[rldpvals$padj.SM32<0.01& !is.na(rldpvals$padj.SM32),])
-```
-#3342
-
-```{r}
-nrow(rldpvals[rldpvals$padj.BOTH27<0.01& !is.na(rldpvals$padj.BOTH27),])
-```
-#2325
-
-```{r}
-nrow(rldpvals[rldpvals$padj.BOTH32<0.01& !is.na(rldpvals$padj.BOTH32),])
-```
-#1738
-
-# I think this is the top 100 DEGs for each of the 4 treatments??
-
-# MI32
-```{r}
-topnum= 100 # number of DEGS
-head(rldpvals)
 top100=head(rldpvals[order(rldpvals$padj.MI32), ],topnum)
-head(top100)
-length(top100[,1])
-summary(top100)
-###
-library(pheatmap)
-head(top100)
-p.val=0.1 # FDR cutoff
+
+p.val=0.1
 conds=top100[top100$padj.MI32<=p.val & !is.na(top100$padj.MI32),]
 length(conds[,1])
 
-exp=conds[,1:8] # change numbers to be your vsd data columns
-means=apply(exp,1,mean) # means of rows
-explc=exp-means # subtracting them
-head(explc)
+exp=conds[,1:8]
+means=apply(exp,1,mean) 
+explc=exp-means 
+
 
 ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
 col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
@@ -801,25 +600,19 @@ col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(1
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
 
-#SM32
-```{r}
-topnum= 100 # number of DEGS
-head(rldpvals)
+**Heatmap for top 100 DEGs in the thermally sensitive heat stressed treatment(SM32)**
+```{r, echo=FALSE}
+topnum= 100 
+
 top100=head(rldpvals[order(rldpvals$padj.SM32), ],topnum)
+
 head(top100)
-length(top100[,1])
-summary(top100)
-###
-library(pheatmap)
-head(top100)
-p.val=0.1 # FDR cutoff
+p.val=0.1 
 conds=top100[top100$padj.SM32<=p.val & !is.na(top100$padj.SM32),]
-length(conds[,1])
 
-exp=conds[,1:8] # change numbers to be your vsd data columns
-means=apply(exp,1,mean) # means of rows
-explc=exp-means # subtracting them
-head(explc)
+exp=conds[,1:8] 
+means=apply(exp,1,mean) 
+explc=exp-means 
 
 ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
 col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
@@ -827,25 +620,18 @@ col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(1
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
 
-# BOTH27
-```{r}
-topnum= 100 # number of DEGS
-head(rldpvals)
+**Heatmap for top 100 DEGs in the thermally tolerant population relative to the thermally sensitive population at control temperature (BOTH27)**
+```{r, echo=FALSE}
+topnum= 100 
+
 top100=head(rldpvals[order(rldpvals$padj.BOTH27), ],topnum)
-head(top100)
-length(top100[,1])
-summary(top100)
-###
-library(pheatmap)
-head(top100)
-p.val=0.1 # FDR cutoff
+
+p.val=0.1 
 conds=top100[top100$padj.BOTH27<=p.val & !is.na(top100$padj.BOTH27),]
-length(conds[,1])
 
-exp=conds[,1:8] # change numbers to be your vsd data columns
-means=apply(exp,1,mean) # means of rows
-explc=exp-means # subtracting them
-head(explc)
+exp=conds[,1:8] 
+means=apply(exp,1,mean) 
+explc=exp-means 
 
 ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
 col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
@@ -853,52 +639,40 @@ col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(1
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
 
-# BOTH32
-```{r}
-topnum= 100 # number of DEGS
-head(rldpvals)
+**Heatmap for top 100 DEGs in the thermally tolerant population relative to the thermally sensitive population that were heat stressed (BOTH32)**
+```{r, echo=FALSE}
+topnum= 100 
+
 top100=head(rldpvals[order(rldpvals$padj.BOTH32), ],topnum)
-head(top100)
-length(top100[,1])
-summary(top100)
-###
-library(pheatmap)
-head(top100)
-p.val=0.1 # FDR cutoff
-conds=top100[top100$padj.BOTH32<=p.val & !is.na(top100$padj.BOTH32),]
-length(conds[,1])
 
-exp=conds[,1:8] # change numbers to be your vsd data columns
-means=apply(exp,1,mean) # means of rows
-explc=exp-means # subtracting them
-head(explc)
+p.val=0.1 
+conds=top100[top100$padj.BOTH32<=p.val & !is.na(top100$padj.BOTH32),]
+
+exp=conds[,1:8] 
+means=apply(exp,1,mean) 
+explc=exp-means 
 
 ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
 col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
 
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
+Figures 11-14 Heatmaps based on the top 100 differentially expressed genes in each treatment at a p value of 0.01. Basing the heat maps on the top genes of the different treatments leads to different sample clustering. When the top 100 genes are from the MI32 or BOTH27 then the expression patterns cluster more based on temperature treatment than thermal tolerance. When the top 100 genes are based on SM32 or BOTH32, then gene expression patterns are clustered more by thermal tolerance than temperature treatment.
+
+### Heatmap for the genes in common
 
 
-
-
-###################################Heatmap for the genes in common
-
-#Not sure how to set this up but here goes...
-
-# MI32 & SM32
-```{r}
+This heatmap plots the genes in common in each population when heat stressed
+```{r, echo=FALSE}
 rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
 head(rldpvals)
-p.val=0.1 # FDR cutoff
+p.val=0.1 
 conds=rldpvals[rldpvals$padj.MI32<=p.val & !is.na(rldpvals$padj.MI32) & rldpvals$padj.SM32<=p.val & !is.na(rldpvals$padj.SM32),]
 rld_data= conds[,c(1:8)]
-head(rld_data)
-nrow(rld_data)
 gg=read.table("transcript2geneDescription.out.txt",sep="\t", row.names=1)
-library(pheatmap)
-means=apply(rld_data,1,mean) # means of rows
-explc=rld_data-means # subtracting them
+
+means=apply(rld_data,1,mean) 
+explc=rld_data-means 
 
 ccol=colorRampPalette(rev(c("red","chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
 col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(100)
@@ -906,17 +680,16 @@ col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(1
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
 
-# BOTH27 and BOTH32
-```{r}
+This heatmap plots the genes in common from comparing the thermally tolerant expression to the thermally sensitive expression at control and heat stress temperatures
+```{r, echo=FALSE}
 rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
-head(rldpvals)
-p.val=0.1 # FDR cutoff
+
+p.val=0.1 
 conds=rldpvals[rldpvals$padj.BOTH27<=p.val & !is.na(rldpvals$padj.BOTH27) & rldpvals$padj.BOTH32<=p.val & !is.na(rldpvals$padj.BOTH32),]
 rld_data= conds[,c(1:8)]
-head(rld_data)
-nrow(rld_data)
+
 gg=read.table("transcript2geneDescription.out.txt",sep="\t", row.names=1)
-library(pheatmap)
+
 means=apply(rld_data,1,mean) # means of rows
 explc=rld_data-means # subtracting them
 
@@ -925,17 +698,15 @@ col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(1
 
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
+Figures 15-16 Plotting heatmaps based on common genes. These heatmaps lead to a mix of clustering. The gene expression pattern of SM32 is most similar to MI27 and MI32 is most similar to SM27. 
 
-## This is where I got stuck :(
 
-# Make annotation table for pheatmap
+### Make annotation table for pheatmap
+
 ```{r}
 ann = data.frame(cond = c('MI_32', 'MI_32.1', 'MI_27', 'MI_27.1', 'SM_32', 'SM_32.1', 'SM_27', 'SM_27.1'))
 rownames(ann) <- names(explc)
 ```
-
-ann = data.frame(cond = c('MI_32', 'MI_32.1', 'MI_27', 'MI_27.1', 'SM_32', 'SM_32.1', 'SM_27', 'SM_27.1'))
-rownames(ann) <- names(explc)
 
 # Set colors
 ```{r}
@@ -944,16 +715,11 @@ names(Var1) <- c('MI_32', 'MI_32.1', 'MI_27', 'MI_27.1', 'SM_32', 'SM_32.1', 'SM
 anno_colors <- list(cond = Var1)
 ```
 
-Var1        <- c("darkgoldenrod2",  "darkolivegreen3", "dodgerblue3")
-names(Var1) <- c("7.5", "7.6", "8")
-anno_colors <- list(cond = Var1)
 
 ```{r}
 pheatmap(as.matrix(explc),annotation_col=ann,annotation_colors=anno_colors,cex=1.2,color=col0,border_color=NA,clustering_distance_rows="correlation",clustering_distance_cols="correlation", show_rownames=T)
 ```
-
-
-pheatmap(as.matrix(explc),annotation_col=ann,annotation_colors=anno_colors,cex=1.2,color=col0,border_color=NA,clustering_distance_rows="correlation",clustering_distance_cols="correlation", show_rownames=T)
+# Conclusion
 
 
 
