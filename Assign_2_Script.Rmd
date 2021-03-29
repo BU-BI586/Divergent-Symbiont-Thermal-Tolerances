@@ -125,7 +125,7 @@ colData= g
 countData <- round(countData, digits=0)
 ```
 
-```{r, warning=FALSE}
+```{r, results='hide', warning=FALSE, error=FALSE, message=FALSE}
 dds=DESeqDataSetFromMatrix(countData=countData,
                            colData = g,
                            design = ~treat)
@@ -134,7 +134,7 @@ dds=DESeqDataSetFromMatrix(countData=countData,
 **Now we run a one step DESeq on our data**
 
 This estimates size factors and dispersions meaning we are calcualting the relative library depth of the samples and checking the count dispersion of a gene. Creates gene-wise dispersion estimates and mean-dispersion relationship as well as create final dispersion estimates and fitting model and testing.
-```{r, warning=FALSE}
+```{r, results='hide', warning=FALSE, error=FALSE, message=FALSE}
 dds<-DESeq(dds)
 ```
 
@@ -180,13 +180,13 @@ plotMA(resMI32, main="MI_32 vs MI_27", ylim=c(-10,10))
 Figure 3: MA plot for MI_32 vs MI_27. The x-axis is the mean of normalized counts which is basically the depth of coverage (low expressed genes are further to the left). The y-axis plots the log fold change indictating whether the genes are up or down-regulated. There is always more differentially expressed genes further to the right as it is hard to find them when the depth of coverage is low. The blue color spots are the differentially expressed genes
 
 This puts our results into a data frame.
-```{r}
+```{r, echo=TRUE, results='hide'}
 results <- as.data.frame(resMI32)
 head(results)
 ```
 
 We write our data into a table to be used for later usage and read it back in to make a GO table
-```{r}
+```{r,echo=TRUE, results='hide'}
 write.table(resMI32, file="MI_32.txt", quote=F, sep="\t")
 cd <- read.table("MI_32.txt")
 head(cd)
@@ -201,9 +201,7 @@ go_input_MI32 = cd %>%
   mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
   na.omit() %>%
   select(iso, mutated_p_updown)
-head(go_input_MI32)
 colnames(go_input_MI32) <- c("gene", "pval")
-head(go_input_MI32)
 write.csv(go_input_MI32, file="MI32_GO.csv", quote=F, row.names=FALSE)
 ```
 
@@ -230,9 +228,8 @@ plotMA(resSM32, main="SM_32 vs SM_27", ylim=c(-10,10))
 
 Figure 4: MA plot for SM_32 vs SM_27. The x-axis is the mean of normalized counts which is basically the depth of coverage (low expressed genes are further to the left). The y-axis plots the log fold change indictating whether the genes are up or down-regulated.
 
-```{r, echo=TRUE, message=FALSE}
+```{r, echo=FALSE}
 results <- as.data.frame(resSM32)
-head(results)
 ```
 
 
@@ -283,7 +280,6 @@ results <- as.data.frame(resBOTH32)
 ```{r}
 write.table(resBOTH32, file="BOTH_32.txt", quote=F, sep="\t")
 cd <- read.table("BOTH_32.txt")
-head(cd)
 ```
 
 ```{r}
@@ -320,7 +316,6 @@ Figure 5: MA plot for MI_32 vs SM_32. The x-axis is the mean of normalized count
 
 ```{r}
 results <- as.data.frame(resBOTH27)
-head(results)
 ```
 
 ```{r}
@@ -335,9 +330,7 @@ go_input_BOTH27 = cd %>%
   mutate(mutated_p_updown = ifelse(log2FoldChange < 0, mutated_p*-1, mutated_p*1)) %>%
   na.omit() %>%
   select(iso, mutated_p_updown)
-head(go_input_BOTH27)
 colnames(go_input_BOTH27) <- c("gene", "pval")
-head(go_input_BOTH27)
 write.csv(go_input_BOTH27, file="BOTH27_GO.csv", quote=F, row.names=FALSE)
 ```
 
@@ -511,7 +504,7 @@ rownames(sampleDistMatrix)=paste(treat)
 ```
 
 Same heatmap as before but with color scales
-```{r, warning=FALSE}
+```{r, warning=FALSE, message=FALSE}
 heat.colors = colorRampPalette(rev(c("blue","yellow","red")),bias=0.3)(100)
 pheatmap(sampleDistMatrix,color = heat.colors,cex=0.9,border_color=NA,cluster_rows=T,cluster_cols=T)
 ```
@@ -548,6 +541,7 @@ ggplot(pca_s, aes(PC1, PC2, color = treat, pch = treat)) +
   xlab(paste0("PC1: ",pc1v,"% variance")) +
   ylab(paste0("PC2: ",pc2v,"% variance")) 
 ```
+
 Figure 10: PCA analysis of our samples. MI are the thermally tolerant symbionts and SM are the thermally sensitive ones. Those that have a 27 in the name are the controls while the other samples are the heat stressed. Each category had two replicates.
 
 
@@ -555,21 +549,15 @@ Test if distances is significantly different. Treatment is having signficant eff
 ```{r}
 adonis(pca$x ~ treat, data = pca_s, method='eu', na.rm = TRUE)
 ```
-       Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
-treat      3    129848   43283  3.9115 0.74578  0.011 *
-Residuals  4     44263   11066         0.25422         
-Total      7    174111                 1.00000 
+
 
 
 ### Heatmaps for genes based on expression in each treatment
 
 ```{r}
 rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
-head(rldpvals)
 rld_site= rldpvals[,1:8]
-head(rld_site)
 gg=read.table("transcript2geneDescription.out.txt",sep="\t", row.names=1)
-head(gg)
 ```
 
 Here we create four heatmaps based on the top 100 differentially expressed genes in each of the four treatments. 
@@ -601,7 +589,6 @@ topnum= 100
 
 top100=head(rldpvals[order(rldpvals$padj.SM32), ],topnum)
 
-head(top100)
 p.val=0.1 
 conds=top100[top100$padj.SM32<=p.val & !is.na(top100$padj.SM32),]
 
@@ -652,6 +639,7 @@ col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(1
 
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
+
 Figures 11-14 Heatmaps based on the top 100 differentially expressed genes in each treatment at a p value of 0.01. Basing the heat maps on the top genes of the different treatments leads to different sample clustering. When the top 100 genes are from the MI32 or BOTH27 then the expression patterns cluster more based on temperature treatment than thermal tolerance. When the top 100 genes are based on SM32 or BOTH32, then gene expression patterns are clustered more by thermal tolerance than temperature treatment.
 
 ### Heatmap for the genes in common
@@ -660,7 +648,6 @@ Figures 11-14 Heatmaps based on the top 100 differentially expressed genes in ea
 This heatmap plots the genes in common in each population when heat stressed
 ```{r, echo=FALSE}
 rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
-head(rldpvals)
 p.val=0.1 
 conds=rldpvals[rldpvals$padj.MI32<=p.val & !is.na(rldpvals$padj.MI32) & rldpvals$padj.SM32<=p.val & !is.na(rldpvals$padj.SM32),]
 rld_data= conds[,c(1:8)]
@@ -693,6 +680,7 @@ col0=colorRampPalette(rev(c("chocolate1","#FEE090","grey10", "cyan3","cyan")))(1
 
 pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
+
 Figures 15-16 Plotting heatmaps based on common genes. These heatmaps lead to a mix of clustering. The gene expression pattern of SM32 is most similar to MI27 and MI32 is most similar to SM27. 
 
 
@@ -714,6 +702,7 @@ anno_colors <- list(cond = Var1)
 ```{r}
 pheatmap(as.matrix(explc),annotation_col=ann,annotation_colors=anno_colors,cex=1.2,color=col0,border_color=NA,clustering_distance_rows="correlation",clustering_distance_cols="correlation", show_rownames=T)
 ```
+
 # Conclusion
 
 
