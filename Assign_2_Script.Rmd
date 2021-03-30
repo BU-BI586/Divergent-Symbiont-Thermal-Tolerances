@@ -11,7 +11,7 @@ Different Symbiodiniaceae species and populations can convey different thermal t
 
 **R version** 
 
-We used R version R-4.0.3 ADD in package versions before submitting
+We used R version R-4.0.3 (Packaage versions listed below)
 
 # DESeq2 and GO enrichment pathways
 In order to understand the genes that are differentially expressed due to thermal tolerance, we used the Deseq2 and GO enrichment pathways. Deseq2 allows us to compare gene counts between treatment to determine what is differentially expressed. This data is then funneled into the Go enrichment pathway to determine the functions of the differentially expressed genes.
@@ -163,7 +163,7 @@ colData$MI32<-factor(colData$treat, levels=c("MI_32","MI_27"))
 resMI32 <- results(dds, contrast=c("treat","MI_32","MI_27"))
 ```
 
-This tells us how many genes were differentially expressed based on the p adjusted value. Using a p adjusted value accounts for mutliple test corrections
+This tells us how many genes were differentially expressed based on the p adjusted value. Using a p adjusted value accounts for multiple test corrections
 ```{r}
 table(resMI32$padj<0.1)
 ```
@@ -179,7 +179,7 @@ We set a higher ylim because of some very large fold changes
 plotMA(resMI32, main="MI_32 vs MI_27", ylim=c(-10,10))
 ```
 
-Figure 3: MA plot for MI_32 vs MI_27. The x-axis is the mean of normalized counts which is basically the depth of coverage (low expressed genes are further to the left). The y-axis plots the log fold change indictating whether the genes are up or down-regulated. There is always more differentially expressed genes further to the right as it is hard to find them when the depth of coverage is low. The blue color spots are the differentially expressed genes
+Figure 3: MA plot for MI_32 vs MI_27. The x-axis is the mean of normalized counts which is basically the depth of coverage (low expressed genes are further to the left). The y-axis plots the log fold change indicating whether the genes are up or down-regulated. There is always more differentially expressed genes further to the right as it is hard to find them when the depth of coverage is low. The blue color spots are the differentially expressed genes
 
 This puts our results into a data frame.
 ```{r, echo=TRUE, results='hide'}
@@ -740,13 +740,15 @@ Now we look at our results in much easier to understand plot. GO terms are group
 ```{r}
 print(results=gomwuPlot(input,goAnnotations,goDivision,
                         absValue=-log(0.05,10), 
-                        level1=0.1,
-                        level2=0.05,
-                        level3=0.01, 
-                        txtsize=1.2,   
-                        treeHeight=0.5, 
+                        level1=0.05,
+                        level2=0.01,
+                        level3=0.005, 
+                        txtsize=1.4,   
+                        treeHeight=0.6, 
                         colors=c("dodgerblue2","firebrick1","skyblue2","lightcoral")))
 ```
+Figure 17. Most Statistically Significantly Differentially Expressed GO Enrichment Terms in the Thermally Tolerant Magnetic Island Symbiont Population. 
+
 
 **SM32 GO terms**
 Now we are switching to look at the GO terms of differentially expressed genes in the thermally sensitive population.
@@ -774,53 +776,21 @@ gomwuStats(input, goDatabase, goAnnotations, goDivision,
 ```{r}
 print(results=gomwuPlot(input,goAnnotations,goDivision,
                         absValue=-log(0.05,10),  
-                        level1=0.1, 
-                        level2=0.05, 
-                        level3=0.01, 
-                        txtsize=1.2,    
+                        level1=0.01, 
+                        level2=0.005, 
+                        level3=0.001, 
+                        txtsize=1.5,    
                         treeHeight=0.5,
                         colors=c("dodgerblue2","firebrick1","skyblue2","lightcoral")
 ))
 
 ```
-
-
-**BOTH27**
-This last GO term analysis is looking at the differentially expressed genes in the thermally tolerant populations relative to the thermally senstitive at control temperature
-```{r}
-input="BOTH27_GO.csv" 
-
-goAnnotations="newid2go"
-goDatabase="go.obo" # download from http://www.geneontology.org/GO.downloads.ontology.shtml
-goDivision="BP" # either MF, or BP, or CC
-source("gomwu.functions.R")
-```
-
-
-Calculating stats as above
-```{r}
-gomwuStats(input, goDatabase, goAnnotations, goDivision,
-	perlPath="perl", 
-	largest=0.01,  
-	smallest=5,   
-	clusterCutHeight=0.25, 
-)
-```
-85 Go terms at 10% FDR
-
-**Plotting results**
-```{r, warnings=FALSE, message=FALSE}
-print(results=gomwuPlot(input,goAnnotations,goDivision,
-                        absValue=-log(0.05,10),  
-                        level1=0.1, 
-                        level2=0.05,
-                        level3=0.01, 
-                        txtsize=1.2,    
-                        treeHeight=0.5, 
-                        colors=c("dodgerblue2","firebrick1","skyblue2","lightcoral") 
-))
-```
+Figure 18. Most Statistically Significantly Differentially Expressed GO Enrichment Terms in the Thermally Sensitive South Molle Island Symbiont Population.
 
 # Conclusions
 
-Compared to the Levin et al. study we found more differentially expressed genes in each sample than they did. This could be due to our data sets including lnRNA while theirs was soley mRNA. However, our data set did follow similar patterns to the originial analysis. In our analysis and theirs, we found more differentially expressed genes in the SM than the MI populations. Additonally, Levin et al. reported 78% downregulated in SM and 63% upregulated in MI while our deseq analysis reported 62% downregulated in SM and 49% upregulated in MI The differences were likely due to our data following a padj of 0.1 while Levin et al. used an FDR or 0.001. 
+Compared to the Levin et al. study we found more differentially expressed genes in each sample than they did. This could be due to our data sets including lnRNA while theirs was solely mRNA. However, our data set did follow similar patterns to the originial analysis. In our analysis and theirs, we found more differentially expressed genes in the SM than the MI populations. Additonally, Levin et al. reported 78% downregulated in SM and 63% upregulated in MI while our deseq analysis reported 62% downregulated in SM and 49% upregulated in MI. The differences were likely due to our data following a padj of 0.1 while Levin et al. used an FDR or 0.001. 
+
+Overall, our pairwise comparison of the heat stress expression to the control expression found 5048 differentially expressed genes found only in the thermally sensitive population, 2595 differentially expressed genes found only in the thermally tolerant population, and 1653 genes that were differentially expressed by both populations. Generally, our results agree with Levin et al. (2016), as we observed that the thermally sensitive symbionts, when exposed to elevated temperatures, overwhelmingly down-regulated the majority of genes, whereas in the thermally tolerant population there was far less down-regulation. In fact, the majority of genes were up-regulated for thermally tolerant symbionts in elevated temperatures. 
+
+Based on the GO Enrichment Categories, most DEGs in thermally tolerant symbionts that were up-regulated were related to metabolic processes and signalling pathways, with only a handful of down-regulated genes. Inversely, most DEGs in thermally sensitive symbionts were down-regulated, and these corresponded to cellular transport and metabolic processes. Up-regulated genes included cytoplasmic translation, and large and small ribosomal subunit assembly. This indicates that the thermally tolerant symbionts were able to adapt to the environment and resume normal metabollic activity, while the thermally sensitive symbionts slowed metabollic processes and instead focused on cytoplasmic translation (necessary for increased heterotrophy in coral host) and some protein creation.
