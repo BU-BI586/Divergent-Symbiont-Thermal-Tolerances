@@ -695,7 +695,7 @@ ann_column = data.frame(
 condition = rep(c("Tolerant_Stress","Tolerant_Control", "Sensitive_Stress", "Sensitive_Control"),each=2))
 rownames(ann_column) = colnames(explc)
 ann_colors = list(condition = c(Tolerant_Stress="blue",Tolerant_Control="darkgoldenrod2", Sensitive_Stress="cyan", Sensitive_Control="brown"))
-pheatmap(as.matrix(explc),annotation_col=ann_column,annotation_colors=ann_colors,cex=0.6,color=col0,border_color=NA,clustering_distance_rows="correlation",clustering_distance_cols="correlation", show_rownames=T)
+pheatmap(as.matrix(explc),annotation_col=ann_column,annotation_colors=ann_colors,cex=1.2,color=col0,border_color=NA,clustering_distance_rows="correlation",clustering_distance_cols="correlation", show_rownames=T)
 ```
 
 
