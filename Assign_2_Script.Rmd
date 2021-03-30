@@ -401,7 +401,7 @@ Figure 7: Sample distance heat map. This shows overall gene expression, how simi
 
 ### VENN Diagrams 
 
-First we create a series of genes that are up and down-regulated from each of our earlier pairwise comparsions. We set a padj and logfold change cut off
+First we create a series of genes that are up and down-regulated from each of our earlier pairwise comparisons.
 ```{r}
 MI32_up=row.names(resMI32[resMI32$padj<0.1 & !is.na(resMI32$padj) & resMI32$log2FoldChange>0,])
 length(MI32_up) 
@@ -489,6 +489,7 @@ grid.draw(prettyvenn)
 ```
 
 Figure 8: Venn diagram comparing the number of differentially expressed genes when thermally stressed and thermally tolerant symbionts are exposed to heat stress. SM is the thermally sensitive symbionts and MI are the thermally tolerant ones. The datasets graphed are from our pairwise comparison of the heat stress expression to the control expression. Overall, the thermally sensitive ones had much more differentially expressed genes.
+
 
 ### Heat map of sample distances for pco2
 We only use columns 1 through 8 to cut off pvalues because we don't want to visualize them
@@ -821,3 +822,5 @@ print(results=gomwuPlot(input,goAnnotations,goDivision,
 ```
 
 # Conclusions
+
+Compared to the Levin et al. study we found more differentially expressed genes in each sample than they did. This could be due to our data sets including lnRNA while theirs was soley mRNA. However, our data set did follow similar patterns to the originial analysis. In our analysis and theirs, we found more differentially expressed genes in the SM than the MI populations. Additonally, Levin et al. reported 78% downregulated in SM and 63% upregulated in MI while our deseq analysis reported 62% downregulated in SM and 49% upregulated in MI The differences were likely due to our data following a padj of 0.1 while Levin et al. used an FDR or 0.001. 
