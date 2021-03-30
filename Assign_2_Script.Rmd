@@ -11,7 +11,7 @@ Different Symbiodiniaceae species and populations can convey different thermal t
 
 **R version** 
 
-We used R version R-4.0.3 (Packaage versions listed below)
+We used R version R-4.0.3 (Package versions listed below)
 
 # DESeq2 and GO enrichment pathways
 In order to understand the genes that are differentially expressed due to thermal tolerance, we used the Deseq2 and GO enrichment pathways. Deseq2 allows us to compare gene counts between treatment to determine what is differentially expressed. This data is then funneled into the Go enrichment pathway to determine the functions of the differentially expressed genes.
@@ -666,6 +666,7 @@ pheatmap(explc,cluster_cols=T,scale="row",color=col0, show_rownames = F)
 ```
 
 This heatmap plots the genes in common from comparing the thermally tolerant expression to the thermally sensitive expression at control and heat stress temperatures
+
 ```{r, echo=FALSE}
 rldpvals <- read.csv(file="Symbiont_RLDandPVALS.csv", row.names=1)
 
@@ -712,6 +713,7 @@ pheatmap(as.matrix(explc),annotation_col=ann,annotation_colors=anno_colors,cex=1
 Now we are assigning GO terms to the differentially expressed genes we found using DESeq. This will allow us to better understand the functional response to heat stress.
 
 **MI32 GO terms**
+
 We first are looking at the GO terms of differentially expressed genes in the thermally tolerant population.
 ```{r}
 setwd("C:/Users/Corey/Downloads/Bi586/Assign_2/Divergent-Symbiont-Thermal-Tolerances")
@@ -724,6 +726,7 @@ source("gomwu.functions.R")
 GO division can be BP, MF, or CC. These refer to BP for Biological Process, MF for Molecular Function, and CC for Cellular Component. Different gene products can be classified by each sub-ontology. Using any of the three can provide more details about the genes. We use biological process to best understand the broader process the genes are contributing to.
 
 **Now we calculate the stats**
+
 The largest value sets a GO category will not be considered if it contains more than this fraction of the total number of genes. The smallest value sets a GO category should contain at least this many genes to be considered.
 ```{r, results='hide', warning=FALSE, error=FALSE, message=FALSE}
 gomwuStats(input, goDatabase, goAnnotations, goDivision,
@@ -735,22 +738,25 @@ gomwuStats(input, goDatabase, goAnnotations, goDivision,
 31 Go terms at 10% FDR
 
 **Plotting results**
+
 Now we look at our results in much easier to understand plot. GO terms are grouped into levels based on their FDR threshold
 
-```{r}
-print(results=gomwuPlot(input,goAnnotations,goDivision,
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+results=gomwuPlot(input,goAnnotations,goDivision,
                         absValue=-log(0.05,10), 
                         level1=0.05,
                         level2=0.01,
                         level3=0.005, 
                         txtsize=1.4,   
                         treeHeight=0.6, 
-                        colors=c("dodgerblue2","firebrick1","skyblue2","lightcoral")))
+                        colors=c("dodgerblue2","firebrick1","skyblue2","lightcoral"))
 ```
+
 Figure 17. Most Statistically Significantly Differentially Expressed GO Enrichment Terms in the Thermally Tolerant Magnetic Island Symbiont Population. 
 
 
 **SM32 GO terms**
+
 Now we are switching to look at the GO terms of differentially expressed genes in the thermally sensitive population.
 ```{r}
 setwd("C:/Users/Corey/Downloads/Bi586/Assign_2/Divergent-Symbiont-Thermal-Tolerances")
@@ -773,18 +779,19 @@ gomwuStats(input, goDatabase, goAnnotations, goDivision,
 57 GO terms at 10% FDR
 
 **Plotting results**
-```{r}
-print(results=gomwuPlot(input,goAnnotations,goDivision,
+
+```{r, echo=TRUE, warning=FALSE, message=FALSE}
+results=gomwuPlot(input,goAnnotations,goDivision,
                         absValue=-log(0.05,10),  
                         level1=0.01, 
                         level2=0.005, 
                         level3=0.001, 
                         txtsize=1.5,    
                         treeHeight=0.5,
-                        colors=c("dodgerblue2","firebrick1","skyblue2","lightcoral")
-))
+                        colors=c("dodgerblue2","firebrick1","skyblue2","lightcoral"))
 
 ```
+
 Figure 18. Most Statistically Significantly Differentially Expressed GO Enrichment Terms in the Thermally Sensitive South Molle Island Symbiont Population.
 
 # Conclusions
